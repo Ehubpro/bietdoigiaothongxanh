@@ -10,6 +10,9 @@
     
     <!-- Leaflet CSS (Bản đồ) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- FIX: Tải Leaflet JS ngay tại đây để đảm bảo biến toàn cục L luôn sẵn sàng -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <!-- Import Map: Định nghĩa nơi tải các thư viện -->
     <script type="importmap">
@@ -55,13 +58,13 @@
         import { createRoot } from 'react-dom/client';
         import { 
           Map, AlertTriangle, FileText, Megaphone, Shield, 
-          Award, LogIn, Plus, Trash2, Save, Menu, X, 
-          Navigation, Info, User, Layout, MapPin, CheckSquare
+          Award, LogIn, Plus, Trash2, Save, Menu, X, Edit,
+          Navigation, Info, User, Layout, MapPin, CheckSquare, XCircle
         } from 'lucide-react';
         import { initializeApp } from 'firebase/app';
         import { 
           getFirestore, collection, addDoc, getDocs, 
-          deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp 
+          deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp, updateDoc 
         } from 'firebase/firestore';
         import { 
           getAuth, signInWithEmailAndPassword, signOut, 
@@ -69,8 +72,6 @@
         } from 'firebase/auth';
 
         // --- Cấu hình Firebase ---
-        // LƯU Ý: Đây là file HTML tĩnh chạy phía client, nên API Key phải được để công khai.
-        // Để bảo mật tốt hơn, hãy thiết lập giới hạn domain (referrers) trong Google Cloud Console.
         const firebaseConfig = {
           apiKey: "AIzaSyA7A_VxnEqlYMebteU76Om0FnrkVH8Pdl4",
           authDomain: "atgt-6c132.firebaseapp.com",
@@ -179,23 +180,15 @@
             const mapInstanceRef = useRef(null);
             const layersRef = useRef([]);
 
-            // Load Leaflet Script (nếu chưa có trong head, nhưng ta đã thêm vào head để an toàn)
             useEffect(() => {
-                if (window.L) {
+                if (window.L && !mapInstanceRef.current) {
                     initMap();
-                } else {
-                    const script = document.createElement("script");
-                    script.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-                    script.async = true;
-                    script.onload = () => initMap();
-                    document.body.appendChild(script);
                 }
             }, []);
 
             const initMap = () => {
                 if (!mapContainerRef.current || window.L === undefined) return;
-                if (mapInstanceRef.current) return;
-
+                
                 // Center map at Ha Tinh (Approx)
                 const map = window.L.map(mapContainerRef.current).setView([18.338, 105.905], 16);
                 
@@ -273,21 +266,14 @@
             const [loading, setLoading] = useState(true);
 
             useEffect(() => {
-                // Safety check
-                if (!db) {
-                    setLoading(false);
-                    return;
-                }
+                if (!db) { setLoading(false); return; }
                 const q = query(collection(db, 'map_markers'));
                 const unsubscribe = onSnapshot(q, (snapshot) => {
                 const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 if (data.length === 0) {
-                    // Mock Data for initial load
                     setMarkers([
                     { id: '1', type: 'A', lat: 18.3385, lng: 105.9050, label: 'Trường TH Nam Hà', geometryType: 'point' },
                     { id: '2', type: 'C', lat: 18.3395, lng: 105.9060, label: 'Ngã tư nguy hiểm', geometryType: 'point' },
-                    { id: '3', type: 'D', coordinates: [[18.3382, 105.9048], [18.3382, 105.9052], [18.3388, 105.9052], [18.3388, 105.9048]], label: 'Khu vực an toàn', geometryType: 'polygon' },
-                    { id: '4', type: 'B', coordinates: [[18.3400, 105.9040], [18.3390, 105.9045], [18.3385, 105.9050]], label: 'Đường đi học chính', geometryType: 'polyline' }
                     ]);
                 } else {
                     setMarkers(data);
@@ -380,78 +366,135 @@
             const [content, setContent] = useState('');
             const [category, setCategory] = useState('Tin tức');
             const [status, setStatus] = useState('');
+            
+            // Edit Mode State
+            const [editingId, setEditingId] = useState(null);
 
-            // Map Feature States
-            const [geometryType, setGeometryType] = useState('point'); // point, polygon, polyline
-            const [lat, setLat] = useState('');
-            const [lng, setLng] = useState('');
-            const [coordString, setCoordString] = useState(''); // For polygon/polyline input
-            const [markerType, setMarkerType] = useState('C');
+            // Data Lists for Admin Management
+            const [adminPosts, setAdminPosts] = useState([]);
+            const [adminDocs, setAdminDocs] = useState([]);
             const [mapItems, setMapItems] = useState([]);
 
-            // Fetch existing map items for Management List
+            // Map Feature States
+            const [geometryType, setGeometryType] = useState('point'); 
+            const [lat, setLat] = useState('');
+            const [lng, setLng] = useState('');
+            const [coordString, setCoordString] = useState('');
+            const [markerType, setMarkerType] = useState('C');
+
+            // --- FETCH DATA FOR ADMIN ---
             useEffect(() => {
-                if (activeTab === 'map') {
-                    const q = query(collection(db, 'map_markers'), orderBy('createdAt', 'desc'));
-                    const unsubscribe = onSnapshot(q, (snapshot) => {
-                        setMapItems(snapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
-                    }, (error) => {
-                        console.error("Error fetching map items:", error);
+                let unsubscribe = () => {};
+
+                if (activeTab === 'news') {
+                    const q = query(collection(db, 'news'), orderBy('createdAt', 'desc'));
+                    unsubscribe = onSnapshot(q, (snapshot) => {
+                        setAdminPosts(snapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
                     });
-                    return () => unsubscribe();
+                } else if (activeTab === 'docs') {
+                    const q = query(collection(db, 'documents'), orderBy('createdAt', 'desc'));
+                    unsubscribe = onSnapshot(q, (snapshot) => {
+                        setAdminDocs(snapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
+                    });
+                } else if (activeTab === 'map') {
+                    const q = query(collection(db, 'map_markers'), orderBy('createdAt', 'desc'));
+                    unsubscribe = onSnapshot(q, (snapshot) => {
+                        setMapItems(snapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
+                    });
                 }
+                return () => unsubscribe();
             }, [activeTab]);
 
-            const handleDeleteMapItem = async (id) => {
-                if(window.confirm("Bạn có chắc muốn xóa điểm/vùng này?")) {
+            // --- HANDLERS ---
+            const resetForm = () => {
+                setTitle(''); setContent(''); setCategory('Tin tức');
+                setLat(''); setLng(''); setCoordString('');
+                setEditingId(null);
+            };
+
+            const handleEdit = (item) => {
+                setEditingId(item.id);
+                setTitle(item.title);
+                setCategory(item.category || (activeTab === 'news' ? 'Tin tức' : 'Văn bản nội bộ'));
+                
+                if (activeTab === 'map') {
+                    setMarkerType(item.type);
+                    setGeometryType(item.geometryType || 'point');
+                    if (item.geometryType === 'point' || !item.geometryType) {
+                        setLat(item.lat); setLng(item.lng);
+                    } else {
+                        // Convert coords array back to string for editing
+                        const str = item.coordinates.map(pair => pair.join(',')).join('; ');
+                        setCoordString(str);
+                    }
+                } else {
+                    setContent(item.content);
+                }
+            };
+
+            const handleDelete = async (collectionName, id) => {
+                if(window.confirm("Bạn có chắc chắn muốn xóa mục này không? Hành động này không thể hoàn tác.")) {
                     try {
-                        await deleteDoc(doc(db, 'map_markers', id));
+                        await deleteDoc(doc(db, collectionName, id));
+                        setStatus('Đã xóa thành công!');
+                        setTimeout(() => setStatus(''), 3000);
+                        if (editingId === id) resetForm();
                     } catch(err) {
                         alert("Lỗi xóa: " + err.message);
                     }
                 }
-            }
+            };
 
-            const handleAddPost = async (e) => {
+            const handleSubmit = async (e) => {
                 e.preventDefault();
                 setStatus('Đang xử lý...');
                 try {
-                if (activeTab === 'map') {
-                    let data = {
-                        label: title,
-                        type: markerType,
-                        geometryType: geometryType,
-                        createdAt: serverTimestamp()
-                    };
+                    let collectionName = '';
+                    let data = {};
 
-                    if (geometryType === 'point') {
-                        data.lat = parseFloat(lat);
-                        data.lng = parseFloat(lng);
+                    if (activeTab === 'map') {
+                        collectionName = 'map_markers';
+                        data = {
+                            label: title,
+                            type: markerType,
+                            geometryType: geometryType,
+                            createdAt: editingId ? undefined : serverTimestamp() 
+                        };
+                        if (geometryType === 'point') {
+                            data.lat = parseFloat(lat);
+                            data.lng = parseFloat(lng);
+                        } else {
+                            const coords = coordString.split(';').map(pair => {
+                                const [la, lo] = pair.trim().split(',');
+                                return [parseFloat(la), parseFloat(lo)];
+                            });
+                            data.coordinates = coords;
+                        }
                     } else {
-                        // Parse coordinate string "lat,lng; lat,lng" -> [[lat,lng], [lat,lng]]
-                        const coords = coordString.split(';').map(pair => {
-                            const [la, lo] = pair.trim().split(',');
-                            return [parseFloat(la), parseFloat(lo)];
-                        });
-                        data.coordinates = coords;
+                        collectionName = activeTab === 'news' ? 'news' : 'documents';
+                        data = {
+                            title, content, category,
+                            createdAt: editingId ? undefined : serverTimestamp()
+                        };
                     }
 
-                    await addDoc(collection(db, 'map_markers'), data);
-                    // Reset form
-                    setTitle(''); setLat(''); setLng(''); setCoordString('');
-                } else {
-                    // Add News/Docs
-                    let collectionName = activeTab === 'news' ? 'news' : 'documents';
-                    await addDoc(collection(db, collectionName), {
-                    title, content, category, createdAt: serverTimestamp()
-                    });
-                    setTitle(''); setContent('');
-                }
-                setStatus('Đã thêm thành công!');
-                setTimeout(() => setStatus(''), 3000);
+                    if (editingId) {
+                        // Update existing document
+                        // Remove undefined fields (like createdAt if we kept it undefined)
+                        Object.keys(data).forEach(key => data[key] === undefined && delete data[key]);
+                        await updateDoc(doc(db, collectionName, editingId), data);
+                        setStatus('Cập nhật thành công!');
+                    } else {
+                        // Add new document
+                        await addDoc(collection(db, collectionName), data);
+                        setStatus('Thêm mới thành công!');
+                    }
+                    
+                    resetForm();
+                    setTimeout(() => setStatus(''), 3000);
                 } catch (error) {
-                console.error(error);
-                setStatus('Lỗi: ' + error.message);
+                    console.error(error);
+                    setStatus('Lỗi: ' + error.message);
                 }
             };
 
@@ -462,107 +505,186 @@
                 </h2>
                 
                 <div className="flex space-x-2 mb-6 border-b pb-2 overflow-x-auto">
-                    <button onClick={() => setActiveTab('news')} className={`px-4 py-2 rounded ${activeTab === 'news' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>Đăng Tin tức</button>
-                    <button onClick={() => setActiveTab('docs')} className={`px-4 py-2 rounded ${activeTab === 'docs' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>Đăng Văn bản</button>
-                    <button onClick={() => setActiveTab('map')} className={`px-4 py-2 rounded ${activeTab === 'map' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>Quản lý Bản đồ (GIS)</button>
+                    <button onClick={() => {setActiveTab('news'); resetForm();}} className={`px-4 py-2 rounded ${activeTab === 'news' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>Quản lý Tin tức</button>
+                    <button onClick={() => {setActiveTab('docs'); resetForm();}} className={`px-4 py-2 rounded ${activeTab === 'docs' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>Quản lý Văn bản</button>
+                    <button onClick={() => {setActiveTab('map'); resetForm();}} className={`px-4 py-2 rounded ${activeTab === 'map' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>Quản lý Bản đồ</button>
                 </div>
 
-                {/* --- NEWS FORM --- */}
+                {/* --- NEWS FORM & LIST --- */}
                 {activeTab === 'news' && (
-                    <form onSubmit={handleAddPost} className="space-y-4">
-                    <div><label className="block font-bold mb-1">Tiêu đề</label><input required value={title} onChange={e => setTitle(e.target.value)} className="w-full border p-2 rounded" /></div>
-                    <div>
-                        <label className="block font-bold mb-1">Chuyên mục</label>
-                        <select value={category} onChange={e => setCategory(e.target.value)} className="w-full border p-2 rounded">
-                        <option>Tin tức</option><option>Gương điển hình</option><option>Kỹ năng</option><option>Cổng trường</option>
-                        </select>
-                    </div>
-                    <div><label className="block font-bold mb-1">Nội dung</label><textarea required value={content} onChange={e => setContent(e.target.value)} className="w-full border p-2 rounded h-32"></textarea></div>
-                    <button className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 flex items-center gap-2"><Save className="w-4 h-4" /> Đăng bài</button>
-                    </form>
-                )}
-
-                {/* --- DOCS FORM --- */}
-                {activeTab === 'docs' && (
-                    <form onSubmit={handleAddPost} className="space-y-4">
-                    <div><label className="block font-bold mb-1">Tên văn bản</label><input required value={title} onChange={e => setTitle(e.target.value)} className="w-full border p-2 rounded" /></div>
-                    <div>
-                        <label className="block font-bold mb-1">Loại</label>
-                        <select value={category} onChange={e => setCategory(e.target.value)} className="w-full border p-2 rounded">
-                        <option>Văn bản nội bộ</option><option>Văn bản pháp luật</option><option>Mẫu cam kết</option>
-                        </select>
-                    </div>
-                    <div><label className="block font-bold mb-1">Link tải</label><input required value={content} onChange={e => setContent(e.target.value)} className="w-full border p-2 rounded" placeholder="https://..." /></div>
-                    <button className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 flex items-center gap-2"><Save className="w-4 h-4" /> Lưu văn bản</button>
-                    </form>
-                )}
-
-                {/* --- MAP GIS FORM --- */}
-                {activeTab === 'map' && (
                     <div className="space-y-6">
-                        {/* Form thêm mới */}
-                        <form onSubmit={handleAddPost} className="bg-yellow-50 p-4 rounded border border-yellow-200 space-y-4">
-                        <h3 className="font-bold text-yellow-800 border-b border-yellow-200 pb-2">Thêm Lớp dữ liệu mới (Layer)</h3>
-                        
-                        <div>
-                            <label className="block font-bold mb-1 text-sm">Tên hiển thị (Label)</label>
-                            <input required value={title} onChange={e => setTitle(e.target.value)} className="w-full border p-2 rounded" placeholder="Ví dụ: Chốt trực Cổng A, Đường Nguyễn Du..." />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
+                        <form onSubmit={handleSubmit} className="bg-blue-50 p-4 rounded border border-blue-200 space-y-4">
+                            <h3 className="font-bold text-blue-800 border-b border-blue-200 pb-2">
+                                {editingId ? `Đang sửa bài viết: ${title}` : 'Thêm bài viết mới'}
+                            </h3>
+                            <div><label className="block font-bold mb-1">Tiêu đề</label><input required value={title} onChange={e => setTitle(e.target.value)} className="w-full border p-2 rounded" /></div>
                             <div>
-                                <label className="block font-bold mb-1 text-sm">Loại hình học (Geometry)</label>
-                                <select value={geometryType} onChange={e => setGeometryType(e.target.value)} className="w-full border p-2 rounded">
-                                    <option value="point">Điểm (Point) - Marker</option>
-                                    <option value="polyline">Đường (Line) - Tuyến đường</option>
-                                    <option value="polygon">Vùng (Polygon) - Khu vực an toàn</option>
+                                <label className="block font-bold mb-1">Chuyên mục</label>
+                                <select value={category} onChange={e => setCategory(e.target.value)} className="w-full border p-2 rounded">
+                                <option>Tin tức</option><option>Gương điển hình</option><option>Kỹ năng</option><option>Cổng trường</option>
                                 </select>
                             </div>
-                            <div>
-                                <label className="block font-bold mb-1 text-sm">Thuộc lớp (Layer Category)</label>
-                                <select value={markerType} onChange={e => setMarkerType(e.target.value)} className="w-full border p-2 rounded">
-                                    <option value="A">Trường học (Layer A)</option>
-                                    <option value="B">Tuyến đường (Layer B)</option>
-                                    <option value="C">Điểm nguy cơ (Layer C)</option>
-                                    <option value="D">Vùng an toàn (Layer D)</option>
-                                    <option value="E">Chốt trực (Layer E)</option>
-                                </select>
+                            <div><label className="block font-bold mb-1">Nội dung</label><textarea required value={content} onChange={e => setContent(e.target.value)} className="w-full border p-2 rounded h-32"></textarea></div>
+                            <div className="flex gap-2">
+                                <button type="submit" className={`${editingId ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-600 hover:bg-green-700'} text-white px-6 py-2 rounded flex items-center gap-2 font-bold`}>
+                                    <Save className="w-4 h-4" /> {editingId ? 'Cập nhật' : 'Đăng bài'}
+                                </button>
+                                {editingId && (
+                                    <button type="button" onClick={resetForm} className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 flex items-center gap-2">
+                                        <XCircle className="w-4 h-4" /> Hủy
+                                    </button>
+                                )}
                             </div>
-                        </div>
-
-                        {geometryType === 'point' ? (
-                            <div className="grid grid-cols-2 gap-4">
-                                <div><label className="block font-bold mb-1 text-sm">Vĩ độ (Lat)</label><input required type="number" step="any" value={lat} onChange={e => setLat(e.target.value)} className="w-full border p-2 rounded" placeholder="18.3..." /></div>
-                                <div><label className="block font-bold mb-1 text-sm">Kinh độ (Lng)</label><input required type="number" step="any" value={lng} onChange={e => setLng(e.target.value)} className="w-full border p-2 rounded" placeholder="105.9..." /></div>
-                            </div>
-                        ) : (
-                            <div>
-                                <label className="block font-bold mb-1 text-sm">Danh sách tọa độ (Lat,Lng)</label>
-                                <textarea required value={coordString} onChange={e => setCoordString(e.target.value)} className="w-full border p-2 rounded h-20 font-mono text-xs" placeholder="18.1,105.1; 18.2,105.2; 18.3,105.3" />
-                                <p className="text-xs text-gray-500 mt-1">Nhập các cặp tọa độ ngăn cách bằng dấu chấm phẩy (;). Ví dụ vẽ hình vuông: `Lat1,Lng1; Lat2,Lng2; Lat3,Lng3; Lat4,Lng4`</p>
-                            </div>
-                        )}
-
-                        <button className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 flex items-center gap-2 w-full justify-center font-bold">
-                            <Plus className="w-4 h-4" /> Thêm vào Bản đồ
-                        </button>
                         </form>
 
-                        {/* Danh sách quản lý */}
+                        {/* List of News */}
+                        <div className="bg-white border rounded-lg overflow-hidden">
+                            <div className="bg-gray-100 p-3 font-bold text-gray-700">Danh sách Tin tức ({adminPosts.length})</div>
+                            <div className="max-h-80 overflow-y-auto">
+                                {adminPosts.map(post => (
+                                    <div key={post.id} className="p-3 border-b flex justify-between items-start hover:bg-gray-50 group">
+                                        <div>
+                                            <span className="font-bold block text-blue-900">{post.title}</span>
+                                            <span className="text-xs bg-gray-200 px-2 py-0.5 rounded text-gray-600">{post.category}</span>
+                                            <p className="text-xs text-gray-500 mt-1 line-clamp-1">{post.content}</p>
+                                        </div>
+                                        <div className="flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onClick={() => handleEdit(post)} className="text-blue-600 hover:bg-blue-100 p-2 rounded"><Edit className="w-4 h-4" /></button>
+                                            <button onClick={() => handleDelete('news', post.id)} className="text-red-500 hover:bg-red-100 p-2 rounded"><Trash2 className="w-4 h-4" /></button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* --- DOCS FORM & LIST --- */}
+                {activeTab === 'docs' && (
+                    <div className="space-y-6">
+                        <form onSubmit={handleSubmit} className="bg-blue-50 p-4 rounded border border-blue-200 space-y-4">
+                            <h3 className="font-bold text-blue-800 border-b border-blue-200 pb-2">
+                                {editingId ? `Đang sửa văn bản: ${title}` : 'Thêm văn bản mới'}
+                            </h3>
+                            <div><label className="block font-bold mb-1">Tên văn bản</label><input required value={title} onChange={e => setTitle(e.target.value)} className="w-full border p-2 rounded" /></div>
+                            <div>
+                                <label className="block font-bold mb-1">Loại</label>
+                                <select value={category} onChange={e => setCategory(e.target.value)} className="w-full border p-2 rounded">
+                                <option>Văn bản nội bộ</option><option>Văn bản pháp luật</option><option>Mẫu cam kết</option>
+                                </select>
+                            </div>
+                            <div><label className="block font-bold mb-1">Link tải</label><input required value={content} onChange={e => setContent(e.target.value)} className="w-full border p-2 rounded" placeholder="https://..." /></div>
+                            <div className="flex gap-2">
+                                <button type="submit" className={`${editingId ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-600 hover:bg-green-700'} text-white px-6 py-2 rounded flex items-center gap-2 font-bold`}>
+                                    <Save className="w-4 h-4" /> {editingId ? 'Cập nhật' : 'Lưu văn bản'}
+                                </button>
+                                {editingId && (
+                                    <button type="button" onClick={resetForm} className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 flex items-center gap-2">
+                                        <XCircle className="w-4 h-4" /> Hủy
+                                    </button>
+                                )}
+                            </div>
+                        </form>
+
+                        {/* List of Docs */}
+                        <div className="bg-white border rounded-lg overflow-hidden">
+                            <div className="bg-gray-100 p-3 font-bold text-gray-700">Danh sách Văn bản ({adminDocs.length})</div>
+                            <div className="max-h-80 overflow-y-auto">
+                                {adminDocs.map(doc => (
+                                    <div key={doc.id} className="p-3 border-b flex justify-between items-center hover:bg-gray-50 group">
+                                        <div>
+                                            <span className="font-bold block text-blue-900">{doc.title}</span>
+                                            <span className="text-xs bg-gray-200 px-2 py-0.5 rounded text-gray-600">{doc.category}</span>
+                                            <a href={doc.content} target="_blank" className="text-xs text-blue-500 block hover:underline mt-1 truncate max-w-xs">{doc.content}</a>
+                                        </div>
+                                        <div className="flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onClick={() => handleEdit(doc)} className="text-blue-600 hover:bg-blue-100 p-2 rounded"><Edit className="w-4 h-4" /></button>
+                                            <button onClick={() => handleDelete('documents', doc.id)} className="text-red-500 hover:bg-red-100 p-2 rounded"><Trash2 className="w-4 h-4" /></button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* --- MAP GIS FORM & LIST --- */}
+                {activeTab === 'map' && (
+                    <div className="space-y-6">
+                        <form onSubmit={handleSubmit} className="bg-yellow-50 p-4 rounded border border-yellow-200 space-y-4">
+                            <h3 className="font-bold text-yellow-800 border-b border-yellow-200 pb-2">
+                                {editingId ? `Đang sửa điểm bản đồ` : 'Thêm Lớp dữ liệu mới (Layer)'}
+                            </h3>
+                            <div>
+                                <label className="block font-bold mb-1 text-sm">Tên hiển thị (Label)</label>
+                                <input required value={title} onChange={e => setTitle(e.target.value)} className="w-full border p-2 rounded" placeholder="Ví dụ: Chốt trực Cổng A, Đường Nguyễn Du..." />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block font-bold mb-1 text-sm">Loại hình học</label>
+                                    <select value={geometryType} onChange={e => setGeometryType(e.target.value)} className="w-full border p-2 rounded">
+                                        <option value="point">Điểm (Point)</option>
+                                        <option value="polyline">Đường (Line)</option>
+                                        <option value="polygon">Vùng (Polygon)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block font-bold mb-1 text-sm">Thuộc lớp</label>
+                                    <select value={markerType} onChange={e => setMarkerType(e.target.value)} className="w-full border p-2 rounded">
+                                        <option value="A">Trường học (Layer A)</option>
+                                        <option value="B">Tuyến đường (Layer B)</option>
+                                        <option value="C">Điểm nguy cơ (Layer C)</option>
+                                        <option value="D">Vùng an toàn (Layer D)</option>
+                                        <option value="E">Chốt trực (Layer E)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {geometryType === 'point' ? (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div><label className="block font-bold mb-1 text-sm">Vĩ độ (Lat)</label><input required type="number" step="any" value={lat} onChange={e => setLat(e.target.value)} className="w-full border p-2 rounded" placeholder="18.3..." /></div>
+                                    <div><label className="block font-bold mb-1 text-sm">Kinh độ (Lng)</label><input required type="number" step="any" value={lng} onChange={e => setLng(e.target.value)} className="w-full border p-2 rounded" placeholder="105.9..." /></div>
+                                </div>
+                            ) : (
+                                <div>
+                                    <label className="block font-bold mb-1 text-sm">Danh sách tọa độ (Lat,Lng)</label>
+                                    <textarea required value={coordString} onChange={e => setCoordString(e.target.value)} className="w-full border p-2 rounded h-20 font-mono text-xs" placeholder="18.1,105.1; 18.2,105.2; 18.3,105.3" />
+                                    <p className="text-xs text-gray-500 mt-1">Phân cách bằng dấu chấm phẩy (;). VD: `18.1,105.1; 18.2,105.2`</p>
+                                </div>
+                            )}
+
+                            <div className="flex gap-2">
+                                <button type="submit" className={`${editingId ? 'bg-orange-500 hover:bg-orange-600' : 'bg-blue-600 hover:bg-blue-700'} text-white px-6 py-2 rounded flex items-center gap-2 font-bold w-full justify-center`}>
+                                    {editingId ? <Save className="w-4 h-4"/> : <Plus className="w-4 h-4"/>} 
+                                    {editingId ? 'Cập nhật Bản đồ' : 'Thêm vào Bản đồ'}
+                                </button>
+                                {editingId && (
+                                    <button type="button" onClick={resetForm} className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 flex items-center gap-2">
+                                        Hủy
+                                    </button>
+                                )}
+                            </div>
+                        </form>
+
+                        {/* List of Map Items */}
                         <div className="bg-white border rounded-lg overflow-hidden">
                             <div className="bg-gray-100 p-3 font-bold text-gray-700 flex justify-between">
-                                <span>Danh sách các đối tượng trên bản đồ</span>
+                                <span>Danh sách đối tượng bản đồ</span>
                                 <span className="text-xs font-normal bg-gray-200 px-2 py-1 rounded">{mapItems.length} mục</span>
                             </div>
                             <div className="max-h-60 overflow-y-auto">
                                 {mapItems.map(item => (
-                                    <div key={item.id} className="p-3 border-b flex justify-between items-center hover:bg-gray-50 text-sm">
+                                    <div key={item.id} className="p-3 border-b flex justify-between items-center hover:bg-gray-50 text-sm group">
                                         <div>
                                             <span className="font-bold block">{item.label}</span>
                                             <span className="text-xs text-gray-500 uppercase mr-2">{item.geometryType || 'point'}</span>
                                             <span className="text-xs bg-blue-100 text-blue-800 px-1 rounded">Layer {item.type}</span>
                                         </div>
-                                        <button onClick={() => handleDeleteMapItem(item.id)} className="text-red-500 hover:bg-red-100 p-2 rounded"><Trash2 className="w-4 h-4" /></button>
+                                        <div className="flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onClick={() => handleEdit(item)} className="text-blue-600 hover:bg-blue-100 p-2 rounded"><Edit className="w-4 h-4" /></button>
+                                            <button onClick={() => handleDelete('map_markers', item.id)} className="text-red-500 hover:bg-red-100 p-2 rounded"><Trash2 className="w-4 h-4" /></button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
