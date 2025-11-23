@@ -47,6 +47,10 @@
             font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             font-size: 0.875rem;
         }
+        /* Cursor pointer khi ở chế độ chọn */
+        .cursor-crosshair {
+            cursor: crosshair !important;
+        }
     </style>
 </head>
 <body class="bg-slate-100">
@@ -59,7 +63,8 @@
         import { 
           Map, AlertTriangle, FileText, Megaphone, Shield, 
           Award, LogIn, Plus, Trash2, Save, Menu, X, Edit,
-          Navigation, Info, User, Layout, MapPin, CheckSquare, XCircle
+          Navigation, Info, User, Layout, MapPin, CheckSquare, XCircle,
+          Eye, EyeOff, MousePointer2
         } from 'lucide-react';
         import { initializeApp } from 'firebase/app';
         import { 
@@ -175,10 +180,11 @@
         };
 
         // --- Component: Leaflet Map Integration ---
-        const LeafletMap = ({ markers, activeLayers }) => {
+        const LeafletMap = ({ markers, activeLayers, onMapClick, selectedCoords }) => {
             const mapContainerRef = useRef(null);
             const mapInstanceRef = useRef(null);
             const layersRef = useRef([]);
+            const previewMarkerRef = useRef(null);
 
             useEffect(() => {
                 if (window.L && !mapInstanceRef.current) {
@@ -189,7 +195,6 @@
             const initMap = () => {
                 if (!mapContainerRef.current || window.L === undefined) return;
                 
-                // Center map at Ha Tinh (Updated location)
                 const map = window.L.map(mapContainerRef.current).setView([18.336241, 105.902037], 16);
                 
                 window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -200,6 +205,58 @@
                 updateLayers(map);
             };
 
+            // Xử lý sự kiện Click để chọn điểm
+            useEffect(() => {
+                if (!mapInstanceRef.current) return;
+                const map = mapInstanceRef.current;
+
+                const clickHandler = (e) => {
+                    if (onMapClick) {
+                        onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
+                    }
+                };
+
+                // Nếu có onMapClick (chế độ Admin), đổi cursor và lắng nghe click
+                if (onMapClick) {
+                    map.getContainer().classList.add('cursor-crosshair');
+                    map.on('click', clickHandler);
+                } else {
+                    map.getContainer().classList.remove('cursor-crosshair');
+                    map.off('click', clickHandler);
+                }
+
+                return () => {
+                    map.off('click', clickHandler);
+                };
+            }, [onMapClick]);
+
+            // Hiển thị Marker tạm thời (Preview) khi Admin đang chọn
+            useEffect(() => {
+                if (!mapInstanceRef.current || !window.L) return;
+                const map = mapInstanceRef.current;
+
+                // Xóa marker preview cũ
+                if (previewMarkerRef.current) {
+                    map.removeLayer(previewMarkerRef.current);
+                    previewMarkerRef.current = null;
+                }
+
+                if (selectedCoords && selectedCoords.lat && selectedCoords.lng) {
+                    const customIcon = window.L.divIcon({
+                        className: 'custom-div-icon',
+                        html: `<div style="background-color: #ec4899; width:16px; height:16px; border-radius:50%; border:3px solid white; box-shadow: 0 0 8px rgba(0,0,0,0.5); animation: bounce 0.5s infinite alternate;"></div>`,
+                        iconSize: [16, 16],
+                        iconAnchor: [8, 8]
+                    });
+                    
+                    previewMarkerRef.current = window.L.marker([selectedCoords.lat, selectedCoords.lng], { icon: customIcon, zIndexOffset: 1000 })
+                        .addTo(map)
+                        .bindPopup("Vị trí đang chọn")
+                        .openPopup();
+                }
+            }, [selectedCoords]);
+
+            // Cập nhật các Layers chính
             useEffect(() => {
                 if (mapInstanceRef.current && window.L) {
                 updateLayers(mapInstanceRef.current);
@@ -212,12 +269,11 @@
                 layersRef.current = [];
 
                 markers.forEach(feature => {
-                if (activeLayers.includes(feature.type)) {
-                    // 1. Handle Points (Markers)
+                if (activeLayers.includes(feature.type) && feature.isVisible !== false) {
                     if (!feature.geometryType || feature.geometryType === 'point') {
                     let color = 'blue';
-                    if (feature.type === 'C') color = 'red'; // Danger
-                    if (feature.type === 'E') color = 'gold'; // Guard
+                    if (feature.type === 'C') color = 'red'; 
+                    if (feature.type === 'E') color = 'gold'; 
                     
                     const customIcon = window.L.divIcon({
                         className: 'custom-div-icon',
@@ -231,7 +287,6 @@
                         .addTo(map);
                     layersRef.current.push(m);
                     } 
-                    // 2. Handle Polygons (Areas - e.g., Safety Zones)
                     else if (feature.geometryType === 'polygon' && feature.coordinates) {
                         const p = window.L.polygon(feature.coordinates, {
                             color: 'green',
@@ -241,10 +296,9 @@
                         }).bindPopup(`<b>${feature.label}</b><br/>Khu vực an toàn`).addTo(map);
                         layersRef.current.push(p);
                     }
-                    // 3. Handle Polylines (Routes - e.g., Student Paths)
                     else if (feature.geometryType === 'polyline' && feature.coordinates) {
                         const l = window.L.polyline(feature.coordinates, {
-                            color: '#4b5563', // Gray-600
+                            color: '#4b5563',
                             weight: 4,
                             dashArray: '5, 10',
                             opacity: 0.7
@@ -259,7 +313,7 @@
         };
 
         // --- Component: Interactive Map Container ---
-        const InteractiveMap = ({ isAdmin }) => {
+        const InteractiveMap = ({ isAdmin, onMapClick, selectedCoords }) => {
             const [activeLayers, setActiveLayers] = useState(['A', 'B', 'C', 'D', 'E']);
             const [parentMode, setParentMode] = useState(false);
             const [markers, setMarkers] = useState([]);
@@ -271,12 +325,9 @@
                 const unsubscribe = onSnapshot(q, (snapshot) => {
                 const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 if (data.length === 0) {
-                    // Mock Data for initial load
                     setMarkers([
-                    { id: '1', type: 'A', lat: 18.336241, lng: 105.902037, label: 'Trường TH Nam Hà', geometryType: 'point' },
-                    { id: '2', type: 'C', lat: 18.3395, lng: 105.9060, label: 'Ngã tư nguy hiểm', geometryType: 'point' },
-                    { id: '3', type: 'D', coordinates: [[18.3382, 105.9048], [18.3382, 105.9052], [18.3388, 105.9052], [18.3388, 105.9048]], label: 'Khu vực an toàn', geometryType: 'polygon' },
-                    { id: '4', type: 'B', coordinates: [[18.3400, 105.9040], [18.3390, 105.9045], [18.3385, 105.9050]], label: 'Đường đi học chính', geometryType: 'polyline' }
+                    { id: '1', type: 'A', lat: 18.336241, lng: 105.902037, label: 'Trường TH Nam Hà', geometryType: 'point', isVisible: true },
+                    { id: '2', type: 'C', lat: 18.3395, lng: 105.9060, label: 'Ngã tư nguy hiểm', geometryType: 'point', isVisible: true },
                     ]);
                 } else {
                     setMarkers(data);
@@ -316,12 +367,15 @@
                         </h2>
                         <p className="text-sm text-gray-500">Dữ liệu thực tế khu vực Phường Thành Sen - OpenStreetMap</p>
                     </div>
-                    <button 
-                    onClick={toggleParentMode}
-                    className={`px-4 py-2 rounded-full font-bold text-sm transition ${parentMode ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}
-                    >
-                    {parentMode ? 'Đang bật: Chế độ Phụ huynh' : 'Bật chế độ Phụ huynh (Tối giản)'}
-                    </button>
+                    <div className="flex gap-2">
+                        {isAdmin && <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded flex items-center animate-pulse"><MousePointer2 className="w-3 h-3 mr-1"/> Chế độ chọn điểm</span>}
+                        <button 
+                        onClick={toggleParentMode}
+                        className={`px-4 py-2 rounded-full font-bold text-sm transition ${parentMode ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}
+                        >
+                        {parentMode ? 'Chế độ Phụ huynh' : 'Chế độ Phụ huynh'}
+                        </button>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -345,6 +399,7 @@
                             <div className="flex items-center gap-2"><div className="w-3 h-3 bg-green-400 opacity-50 border border-green-600"></div> Vùng an toàn</div>
                             <div className="flex items-center gap-2"><div className="w-6 h-1 bg-gray-500 border-t border-dashed"></div> Tuyến đường HS</div>
                             <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-red-600 border-2 border-white shadow"></div> Điểm đen/Ùn tắc</div>
+                            {isAdmin && <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-pink-500 border-2 border-white shadow animate-pulse"></div> Vị trí đang chọn</div>}
                         </div>
                     </div>
                     </div>
@@ -354,7 +409,7 @@
                     {loading ? (
                         <div className="absolute inset-0 flex items-center justify-center">Đang tải bản đồ...</div>
                     ) : (
-                        <LeafletMap markers={markers} activeLayers={activeLayers} />
+                        <LeafletMap markers={markers} activeLayers={activeLayers} onMapClick={onMapClick} selectedCoords={selectedCoords} />
                     )}
                     </div>
                 </div>
@@ -370,10 +425,7 @@
             const [category, setCategory] = useState('Tin tức');
             const [status, setStatus] = useState('');
             
-            // Edit Mode State
             const [editingId, setEditingId] = useState(null);
-
-            // Data Lists for Admin Management
             const [adminPosts, setAdminPosts] = useState([]);
             const [adminDocs, setAdminDocs] = useState([]);
             const [mapItems, setMapItems] = useState([]);
@@ -384,26 +436,20 @@
             const [lng, setLng] = useState('');
             const [coordString, setCoordString] = useState('');
             const [markerType, setMarkerType] = useState('C');
+            const [isVisible, setIsVisible] = useState(true); 
 
-            // --- FETCH DATA FOR ADMIN ---
+            // --- FETCH DATA ---
             useEffect(() => {
                 let unsubscribe = () => {};
-
                 if (activeTab === 'news') {
                     const q = query(collection(db, 'news'), orderBy('createdAt', 'desc'));
-                    unsubscribe = onSnapshot(q, (snapshot) => {
-                        setAdminPosts(snapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
-                    });
+                    unsubscribe = onSnapshot(q, (snapshot) => { setAdminPosts(snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}))); });
                 } else if (activeTab === 'docs') {
                     const q = query(collection(db, 'documents'), orderBy('createdAt', 'desc'));
-                    unsubscribe = onSnapshot(q, (snapshot) => {
-                        setAdminDocs(snapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
-                    });
+                    unsubscribe = onSnapshot(q, (snapshot) => { setAdminDocs(snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}))); });
                 } else if (activeTab === 'map') {
                     const q = query(collection(db, 'map_markers'), orderBy('createdAt', 'desc'));
-                    unsubscribe = onSnapshot(q, (snapshot) => {
-                        setMapItems(snapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
-                    });
+                    unsubscribe = onSnapshot(q, (snapshot) => { setMapItems(snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}))); });
                 }
                 return () => unsubscribe();
             }, [activeTab]);
@@ -412,21 +458,22 @@
             const resetForm = () => {
                 setTitle(''); setContent(''); setCategory('Tin tức');
                 setLat(''); setLng(''); setCoordString('');
+                setIsVisible(true);
                 setEditingId(null);
             };
 
             const handleEdit = (item) => {
                 setEditingId(item.id);
                 setTitle(item.title);
-                setCategory(item.category || (activeTab === 'news' ? 'Tin tức' : 'Văn bản nội bộ'));
+                setCategory(item.category || 'Tin tức');
                 
                 if (activeTab === 'map') {
                     setMarkerType(item.type);
                     setGeometryType(item.geometryType || 'point');
+                    setIsVisible(item.isVisible !== false);
                     if (item.geometryType === 'point' || !item.geometryType) {
                         setLat(item.lat); setLng(item.lng);
                     } else {
-                        // Convert coords array back to string for editing
                         const str = item.coordinates.map(pair => pair.join(',')).join('; ');
                         setCoordString(str);
                     }
@@ -435,16 +482,27 @@
                 }
             };
 
+            // Xử lý Click trên bản đồ (Callback từ InteractiveMap)
+            const handleMapClick = (coords) => {
+                if (activeTab === 'map' && (!geometryType || geometryType === 'point')) {
+                    setLat(coords.lat.toFixed(6)); // Làm tròn 6 số thập phân cho gọn
+                    setLng(coords.lng.toFixed(6));
+                }
+            };
+
+            const toggleMapItemVisibility = async (item) => {
+                try {
+                    const newStatus = item.isVisible === false ? true : false;
+                    await updateDoc(doc(db, 'map_markers', item.id), { isVisible: newStatus });
+                } catch (err) { alert("Lỗi: " + err.message); }
+            };
+
             const handleDelete = async (collectionName, id) => {
-                if(window.confirm("Bạn có chắc chắn muốn xóa mục này không? Hành động này không thể hoàn tác.")) {
+                if(window.confirm("Bạn có chắc chắn muốn xóa?")) {
                     try {
                         await deleteDoc(doc(db, collectionName, id));
-                        setStatus('Đã xóa thành công!');
-                        setTimeout(() => setStatus(''), 3000);
                         if (editingId === id) resetForm();
-                    } catch(err) {
-                        alert("Lỗi xóa: " + err.message);
-                    }
+                    } catch(err) { alert("Lỗi xóa: " + err.message); }
                 }
             };
 
@@ -452,16 +510,16 @@
                 e.preventDefault();
                 setStatus('Đang xử lý...');
                 try {
-                    let collectionName = '';
+                    let collectionName = activeTab === 'map' ? 'map_markers' : (activeTab === 'news' ? 'news' : 'documents');
                     let data = {};
 
                     if (activeTab === 'map') {
-                        collectionName = 'map_markers';
                         data = {
                             label: title,
                             type: markerType,
                             geometryType: geometryType,
-                            createdAt: editingId ? undefined : serverTimestamp() // Don't overwrite timestamp on edit
+                            isVisible: isVisible,
+                            createdAt: editingId ? undefined : serverTimestamp()
                         };
                         if (geometryType === 'point') {
                             data.lat = parseFloat(lat);
@@ -474,7 +532,6 @@
                             data.coordinates = coords;
                         }
                     } else {
-                        collectionName = activeTab === 'news' ? 'news' : 'documents';
                         data = {
                             title, content, category,
                             createdAt: editingId ? undefined : serverTimestamp()
@@ -482,24 +539,22 @@
                     }
 
                     if (editingId) {
-                        // Update existing document
-                        // Remove undefined fields (like createdAt if we kept it undefined)
                         Object.keys(data).forEach(key => data[key] === undefined && delete data[key]);
                         await updateDoc(doc(db, collectionName, editingId), data);
                         setStatus('Cập nhật thành công!');
                     } else {
-                        // Add new document
                         await addDoc(collection(db, collectionName), data);
                         setStatus('Thêm mới thành công!');
                     }
-                    
                     resetForm();
                     setTimeout(() => setStatus(''), 3000);
                 } catch (error) {
-                    console.error(error);
                     setStatus('Lỗi: ' + error.message);
                 }
             };
+
+            // Helper để tạo object coords cho Map Preview
+            const currentEditingCoords = (lat && lng) ? { lat: parseFloat(lat), lng: parseFloat(lng) } : null;
 
             return (
                 <div className="bg-white p-6 rounded shadow-lg mt-4">
@@ -513,107 +568,21 @@
                     <button onClick={() => {setActiveTab('map'); resetForm();}} className={`px-4 py-2 rounded ${activeTab === 'map' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>Quản lý Bản đồ</button>
                 </div>
 
-                {/* --- NEWS FORM & LIST --- */}
-                {activeTab === 'news' && (
-                    <div className="space-y-6">
-                        <form onSubmit={handleSubmit} className="bg-blue-50 p-4 rounded border border-blue-200 space-y-4">
-                            <h3 className="font-bold text-blue-800 border-b border-blue-200 pb-2">
-                                {editingId ? `Đang sửa bài viết: ${title}` : 'Thêm bài viết mới'}
-                            </h3>
-                            <div><label className="block font-bold mb-1">Tiêu đề</label><input required value={title} onChange={e => setTitle(e.target.value)} className="w-full border p-2 rounded" /></div>
-                            <div>
-                                <label className="block font-bold mb-1">Chuyên mục</label>
-                                <select value={category} onChange={e => setCategory(e.target.value)} className="w-full border p-2 rounded">
-                                <option>Tin tức</option><option>Gương điển hình</option><option>Kỹ năng</option><option>Cổng trường</option>
-                                </select>
-                            </div>
-                            <div><label className="block font-bold mb-1">Nội dung</label><textarea required value={content} onChange={e => setContent(e.target.value)} className="w-full border p-2 rounded h-32"></textarea></div>
-                            <div className="flex gap-2">
-                                <button type="submit" className={`${editingId ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-600 hover:bg-green-700'} text-white px-6 py-2 rounded flex items-center gap-2 font-bold`}>
-                                    <Save className="w-4 h-4" /> {editingId ? 'Cập nhật' : 'Đăng bài'}
-                                </button>
-                                {editingId && (
-                                    <button type="button" onClick={resetForm} className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 flex items-center gap-2">
-                                        <XCircle className="w-4 h-4" /> Hủy
-                                    </button>
-                                )}
-                            </div>
-                        </form>
-
-                        {/* List of News */}
-                        <div className="bg-white border rounded-lg overflow-hidden">
-                            <div className="bg-gray-100 p-3 font-bold text-gray-700">Danh sách Tin tức ({adminPosts.length})</div>
-                            <div className="max-h-80 overflow-y-auto">
-                                {adminPosts.map(post => (
-                                    <div key={post.id} className="p-3 border-b flex justify-between items-start hover:bg-gray-50 group">
-                                        <div>
-                                            <span className="font-bold block text-blue-900">{post.title}</span>
-                                            <span className="text-xs bg-gray-200 px-2 py-0.5 rounded text-gray-600">{post.category}</span>
-                                            <p className="text-xs text-gray-500 mt-1 line-clamp-1">{post.content}</p>
-                                        </div>
-                                        <div className="flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button onClick={() => handleEdit(post)} className="text-blue-600 hover:bg-blue-100 p-2 rounded"><Edit className="w-4 h-4" /></button>
-                                            <button onClick={() => handleDelete('news', post.id)} className="text-red-500 hover:bg-red-100 p-2 rounded"><Trash2 className="w-4 h-4" /></button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* --- DOCS FORM & LIST --- */}
-                {activeTab === 'docs' && (
-                    <div className="space-y-6">
-                        <form onSubmit={handleSubmit} className="bg-blue-50 p-4 rounded border border-blue-200 space-y-4">
-                            <h3 className="font-bold text-blue-800 border-b border-blue-200 pb-2">
-                                {editingId ? `Đang sửa văn bản: ${title}` : 'Thêm văn bản mới'}
-                            </h3>
-                            <div><label className="block font-bold mb-1">Tên văn bản</label><input required value={title} onChange={e => setTitle(e.target.value)} className="w-full border p-2 rounded" /></div>
-                            <div>
-                                <label className="block font-bold mb-1">Loại</label>
-                                <select value={category} onChange={e => setCategory(e.target.value)} className="w-full border p-2 rounded">
-                                <option>Văn bản nội bộ</option><option>Văn bản pháp luật</option><option>Mẫu cam kết</option>
-                                </select>
-                            </div>
-                            <div><label className="block font-bold mb-1">Link tải</label><input required value={content} onChange={e => setContent(e.target.value)} className="w-full border p-2 rounded" placeholder="https://..." /></div>
-                            <div className="flex gap-2">
-                                <button type="submit" className={`${editingId ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-600 hover:bg-green-700'} text-white px-6 py-2 rounded flex items-center gap-2 font-bold`}>
-                                    <Save className="w-4 h-4" /> {editingId ? 'Cập nhật' : 'Lưu văn bản'}
-                                </button>
-                                {editingId && (
-                                    <button type="button" onClick={resetForm} className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 flex items-center gap-2">
-                                        <XCircle className="w-4 h-4" /> Hủy
-                                    </button>
-                                )}
-                            </div>
-                        </form>
-
-                        {/* List of Docs */}
-                        <div className="bg-white border rounded-lg overflow-hidden">
-                            <div className="bg-gray-100 p-3 font-bold text-gray-700">Danh sách Văn bản ({adminDocs.length})</div>
-                            <div className="max-h-80 overflow-y-auto">
-                                {adminDocs.map(doc => (
-                                    <div key={doc.id} className="p-3 border-b flex justify-between items-center hover:bg-gray-50 group">
-                                        <div>
-                                            <span className="font-bold block text-blue-900">{doc.title}</span>
-                                            <span className="text-xs bg-gray-200 px-2 py-0.5 rounded text-gray-600">{doc.category}</span>
-                                            <a href={doc.content} target="_blank" className="text-xs text-blue-500 block hover:underline mt-1 truncate max-w-xs">{doc.content}</a>
-                                        </div>
-                                        <div className="flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button onClick={() => handleEdit(doc)} className="text-blue-600 hover:bg-blue-100 p-2 rounded"><Edit className="w-4 h-4" /></button>
-                                            <button onClick={() => handleDelete('documents', doc.id)} className="text-red-500 hover:bg-red-100 p-2 rounded"><Trash2 className="w-4 h-4" /></button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                )}
-
                 {/* --- MAP GIS FORM & LIST --- */}
                 {activeTab === 'map' && (
                     <div className="space-y-6">
+                        {/* HIỂN THỊ BẢN ĐỒ ĐỂ CHỌN ĐIỂM */}
+                        <div className="bg-blue-50 p-2 rounded border border-blue-200">
+                            <p className="text-sm font-bold text-blue-800 mb-2 flex items-center gap-2">
+                                <MousePointer2 className="w-4 h-4"/> Click trực tiếp lên bản đồ để lấy tọa độ
+                            </p>
+                            <InteractiveMap 
+                                isAdmin={true} 
+                                onMapClick={handleMapClick} 
+                                selectedCoords={currentEditingCoords} 
+                            />
+                        </div>
+
                         <form onSubmit={handleSubmit} className="bg-yellow-50 p-4 rounded border border-yellow-200 space-y-4">
                             <h3 className="font-bold text-yellow-800 border-b border-yellow-200 pb-2">
                                 {editingId ? `Đang sửa điểm bản đồ` : 'Thêm Lớp dữ liệu mới (Layer)'}
@@ -645,9 +614,12 @@
                             </div>
 
                             {geometryType === 'point' ? (
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div><label className="block font-bold mb-1 text-sm">Vĩ độ (Lat)</label><input required type="number" step="any" value={lat} onChange={e => setLat(e.target.value)} className="w-full border p-2 rounded" placeholder="18.3..." /></div>
-                                    <div><label className="block font-bold mb-1 text-sm">Kinh độ (Lng)</label><input required type="number" step="any" value={lng} onChange={e => setLng(e.target.value)} className="w-full border p-2 rounded" placeholder="105.9..." /></div>
+                                <div className="grid grid-cols-2 gap-4 bg-white p-3 rounded border">
+                                    <div className="col-span-2 text-xs text-gray-500 italic mb-1">
+                                        * Bạn có thể nhập tay hoặc Click trên bản đồ ở trên để tự điền.
+                                    </div>
+                                    <div><label className="block font-bold mb-1 text-sm">Vĩ độ (Lat)</label><input required type="number" step="any" value={lat} onChange={e => setLat(e.target.value)} className="w-full border p-2 rounded bg-gray-50" placeholder="18.3..." /></div>
+                                    <div><label className="block font-bold mb-1 text-sm">Kinh độ (Lng)</label><input required type="number" step="any" value={lng} onChange={e => setLng(e.target.value)} className="w-full border p-2 rounded bg-gray-50" placeholder="105.9..." /></div>
                                 </div>
                             ) : (
                                 <div>
@@ -657,15 +629,18 @@
                                 </div>
                             )}
 
+                            <div className="flex items-center gap-2 mb-2">
+                                <input type="checkbox" id="visibilityCheck" checked={isVisible} onChange={e => setIsVisible(e.target.checked)} className="w-4 h-4 text-blue-600" />
+                                <label htmlFor="visibilityCheck" className="text-sm font-bold text-gray-700 select-none">Hiển thị trên bản đồ</label>
+                            </div>
+
                             <div className="flex gap-2">
                                 <button type="submit" className={`${editingId ? 'bg-orange-500 hover:bg-orange-600' : 'bg-blue-600 hover:bg-blue-700'} text-white px-6 py-2 rounded flex items-center gap-2 font-bold w-full justify-center`}>
                                     {editingId ? <Save className="w-4 h-4"/> : <Plus className="w-4 h-4"/>} 
                                     {editingId ? 'Cập nhật Bản đồ' : 'Thêm vào Bản đồ'}
                                 </button>
                                 {editingId && (
-                                    <button type="button" onClick={resetForm} className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 flex items-center gap-2">
-                                        Hủy
-                                    </button>
+                                    <button type="button" onClick={resetForm} className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 flex items-center gap-2">Hủy</button>
                                 )}
                             </div>
                         </form>
@@ -679,10 +654,15 @@
                             <div className="max-h-60 overflow-y-auto">
                                 {mapItems.map(item => (
                                     <div key={item.id} className="p-3 border-b flex justify-between items-center hover:bg-gray-50 text-sm group">
-                                        <div>
-                                            <span className="font-bold block">{item.label}</span>
-                                            <span className="text-xs text-gray-500 uppercase mr-2">{item.geometryType || 'point'}</span>
-                                            <span className="text-xs bg-blue-100 text-blue-800 px-1 rounded">Layer {item.type}</span>
+                                        <div className="flex items-center gap-3">
+                                            <button onClick={() => toggleMapItemVisibility(item)} className={`p-1 rounded-full transition ${item.isVisible !== false ? 'bg-green-100 text-green-600' : 'bg-gray-200 text-gray-400'}`}>
+                                                {item.isVisible !== false ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                                            </button>
+                                            <div>
+                                                <span className={`font-bold block ${item.isVisible === false ? 'opacity-50 line-through' : ''}`}>{item.label}</span>
+                                                <span className="text-xs text-gray-500 uppercase mr-2">{item.geometryType || 'point'}</span>
+                                                <span className="text-xs bg-blue-100 text-blue-800 px-1 rounded">Layer {item.type}</span>
+                                            </div>
                                         </div>
                                         <div className="flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button onClick={() => handleEdit(item)} className="text-blue-600 hover:bg-blue-100 p-2 rounded"><Edit className="w-4 h-4" /></button>
@@ -695,12 +675,75 @@
                     </div>
                 )}
 
+                {/* --- NEWS & DOCS SECTION (Giữ nguyên nhưng ẩn khi không chọn tab) --- */}
+                {activeTab === 'news' && (
+                    <div className="space-y-6">
+                        <form onSubmit={handleSubmit} className="bg-blue-50 p-4 rounded border border-blue-200 space-y-4">
+                            <h3 className="font-bold text-blue-800 border-b border-blue-200 pb-2">{editingId ? 'Sửa tin tức' : 'Thêm tin tức mới'}</h3>
+                            <div><label className="block font-bold mb-1">Tiêu đề</label><input required value={title} onChange={e => setTitle(e.target.value)} className="w-full border p-2 rounded" /></div>
+                            <div>
+                                <label className="block font-bold mb-1">Chuyên mục</label>
+                                <select value={category} onChange={e => setCategory(e.target.value)} className="w-full border p-2 rounded">
+                                <option>Tin tức</option><option>Gương điển hình</option><option>Kỹ năng</option><option>Cổng trường</option>
+                                </select>
+                            </div>
+                            <div><label className="block font-bold mb-1">Nội dung</label><textarea required value={content} onChange={e => setContent(e.target.value)} className="w-full border p-2 rounded h-32"></textarea></div>
+                            <div className="flex gap-2">
+                                <button type="submit" className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded flex items-center gap-2 font-bold"><Save className="w-4 h-4" /> {editingId ? 'Cập nhật' : 'Đăng bài'}</button>
+                                {editingId && <button type="button" onClick={resetForm} className="bg-gray-500 text-white px-4 py-2 rounded">Hủy</button>}
+                            </div>
+                        </form>
+                        <div className="bg-white border rounded-lg overflow-hidden">
+                            <div className="bg-gray-100 p-3 font-bold text-gray-700">Danh sách Tin tức</div>
+                            <div className="max-h-80 overflow-y-auto">
+                                {adminPosts.map(post => (
+                                    <div key={post.id} className="p-3 border-b flex justify-between hover:bg-gray-50 group">
+                                        <div><span className="font-bold block">{post.title}</span><span className="text-xs bg-gray-200 px-2 rounded">{post.category}</span></div>
+                                        <div className="flex gap-2 opacity-0 group-hover:opacity-100"><button onClick={() => handleEdit(post)} className="text-blue-600"><Edit className="w-4 h-4"/></button><button onClick={() => handleDelete('news', post.id)} className="text-red-500"><Trash2 className="w-4 h-4"/></button></div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'docs' && (
+                    <div className="space-y-6">
+                        <form onSubmit={handleSubmit} className="bg-blue-50 p-4 rounded border border-blue-200 space-y-4">
+                            <h3 className="font-bold text-blue-800 border-b border-blue-200 pb-2">{editingId ? 'Sửa văn bản' : 'Thêm văn bản mới'}</h3>
+                            <div><label className="block font-bold mb-1">Tên văn bản</label><input required value={title} onChange={e => setTitle(e.target.value)} className="w-full border p-2 rounded" /></div>
+                            <div>
+                                <label className="block font-bold mb-1">Loại</label>
+                                <select value={category} onChange={e => setCategory(e.target.value)} className="w-full border p-2 rounded">
+                                <option>Văn bản nội bộ</option><option>Văn bản pháp luật</option><option>Mẫu cam kết</option>
+                                </select>
+                            </div>
+                            <div><label className="block font-bold mb-1">Link tải</label><input required value={content} onChange={e => setContent(e.target.value)} className="w-full border p-2 rounded" /></div>
+                            <div className="flex gap-2">
+                                <button type="submit" className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded flex items-center gap-2 font-bold"><Save className="w-4 h-4" /> {editingId ? 'Cập nhật' : 'Lưu'}</button>
+                                {editingId && <button type="button" onClick={resetForm} className="bg-gray-500 text-white px-4 py-2 rounded">Hủy</button>}
+                            </div>
+                        </form>
+                        <div className="bg-white border rounded-lg overflow-hidden">
+                            <div className="bg-gray-100 p-3 font-bold text-gray-700">Danh sách Văn bản</div>
+                            <div className="max-h-80 overflow-y-auto">
+                                {adminDocs.map(doc => (
+                                    <div key={doc.id} className="p-3 border-b flex justify-between hover:bg-gray-50 group">
+                                        <div><span className="font-bold block">{doc.title}</span><span className="text-xs bg-gray-200 px-2 rounded">{doc.category}</span></div>
+                                        <div className="flex gap-2 opacity-0 group-hover:opacity-100"><button onClick={() => handleEdit(doc)} className="text-blue-600"><Edit className="w-4 h-4"/></button><button onClick={() => handleDelete('documents', doc.id)} className="text-red-500"><Trash2 className="w-4 h-4"/></button></div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {status && <p className="mt-4 text-blue-600 font-bold animate-pulse text-center bg-blue-50 p-2 rounded">{status}</p>}
                 </div>
             );
         };
 
-        // --- Component: Login ---
+        // ... (Phần còn lại của code Login, NewsList, App giữ nguyên như cũ) ...
         const Login = ({ onLoginSuccess }) => {
             const [email, setEmail] = useState('');
             const [password, setPassword] = useState('');
@@ -752,7 +795,6 @@
             );
         };
 
-        // --- Component: News List ---
         const NewsList = ({ categoryFilter }) => {
             const [posts, setPosts] = useState([]);
             const [loading, setLoading] = useState(true);
@@ -781,7 +823,6 @@
                     {filteredPosts.length > 0 ? filteredPosts.map(post => (
                         <div key={post.id} className="bg-white rounded shadow hover:shadow-lg transition overflow-hidden flex flex-col">
                         <div className="h-40 bg-gray-200 flex items-center justify-center text-gray-400">
-                            {/* Placeholder Image */}
                             <Megaphone className="w-12 h-12" />
                         </div>
                         <div className="p-4 flex-1">
@@ -802,7 +843,6 @@
             );
         };
 
-        // --- Main App Component ---
         function App() {
             const [currentPage, setCurrentPage] = useState('home');
             const [user, setUser] = useState(null);
