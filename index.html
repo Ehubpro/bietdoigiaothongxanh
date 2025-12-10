@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Biệt Đội Giao Thông Xanh - Trường TH Nam Hà - Hà Tĩnh </title>
+    <title>Biệt Đội Giao Thông Xanh - Trường TH Nam Hà - Hà Tĩnh</title>
     
     <!-- Google Fonts: Baloo 2 & Nunito -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -122,7 +122,6 @@
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, useRef, useMemo } from 'react';
         import { createRoot } from 'react-dom/client';
-        // Đổi tên Map thành MapIcon để tránh xung đột với object Map của JS hoặc Leaflet
         import { 
           Map as MapIcon, AlertTriangle, FileText, Megaphone, Shield, 
           Award, LogIn, Plus, Trash2, Save, Menu, X, Edit,
@@ -268,27 +267,61 @@
             const drawingLayerRef = useRef(null);
             const userLocationMarkerRef = useRef(null);
 
+            // Initialize Map
             useEffect(() => { 
-                if (window.L && !mapInstanceRef.current) initMap(); 
-                return () => { if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; } };
+                if (window.L && !mapInstanceRef.current && mapContainerRef.current) {
+                    const map = window.L.map(mapContainerRef.current).setView([18.336241, 105.902037], 16);
+                    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+                    mapInstanceRef.current = map;
+                }
+                
+                return () => { 
+                    if (mapInstanceRef.current) { 
+                        mapInstanceRef.current.remove(); 
+                        mapInstanceRef.current = null; 
+                    } 
+                };
             }, []);
 
-            const initMap = () => {
-                if (!mapContainerRef.current || window.L === undefined) return;
-                const map = window.L.map(mapContainerRef.current).setView([18.336241, 105.902037], 16);
-                window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
-                mapInstanceRef.current = map;
-                updateLayers(map);
-            };
+            // Handle Markers Update - FIXED: Logic moved inside useEffect for proper dependencies
+            useEffect(() => { 
+                const map = mapInstanceRef.current;
+                if (!map || !window.L) return;
+
+                // Cleanup old layers
+                layersRef.current.forEach(layer => { try { map.removeLayer(layer); } catch(e) {} });
+                layersRef.current = [];
+
+                // Add new layers
+                markers.forEach(feature => {
+                    if (activeLayers.includes(feature.type) && feature.isVisible !== false) {
+                        try {
+                            if (!feature.geometryType || feature.geometryType === 'point') {
+                                const m = window.L.marker([feature.lat, feature.lng], { icon: window.L.divIcon({ className: 'custom-div-icon', html: `<div style="background-color:${feature.type === 'C' ? '#FF5252' : (feature.type === 'E' ? '#FFD740' : '#448AFF')}; width:16px; height:16px; border-radius:50%; border:3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"></div>` }) }).bindPopup(feature.label).addTo(map);
+                                layersRef.current.push(m);
+                            } else if (feature.geometryType === 'polygon' && feature.coordinates) {
+                                const p = window.L.polygon(feature.coordinates, { color: '#00E676', fillColor: '#69F0AE', fillOpacity: 0.4, weight: 3 }).bindPopup(feature.label).addTo(map);
+                                layersRef.current.push(p);
+                            } else if (feature.geometryType === 'polyline' && feature.coordinates) {
+                                const l = window.L.polyline(feature.coordinates, { color: '#2C3E50', weight: 5, dashArray: '10, 10', opacity: 0.8 }).bindPopup(feature.label).addTo(map);
+                                layersRef.current.push(l);
+                            }
+                        } catch(e) { console.error(e); }
+                    }
+                });
+            }, [markers, activeLayers]);
 
             // Drawing logic
             useEffect(() => {
-                if (!mapInstanceRef.current || !window.L) return;
                 const map = mapInstanceRef.current;
+                if (!map || !window.L) return;
+
                 if (drawingLayerRef.current) drawingLayerRef.current.forEach(l => { try { map.removeLayer(l); } catch(e) {} });
                 drawingLayerRef.current = [];
+                
                 if (!drawingData) return;
                 const { type, points } = drawingData;
+                
                 if (points && points.length > 0 && points.every(p => !isNaN(p[0]) && !isNaN(p[1]))) {
                     points.forEach(pt => {
                         const m = window.L.marker(pt, { icon: window.L.divIcon({ className: 'custom-div-icon', html: `<div style="background-color: #ec4899; width:12px; height:12px; border-radius:50%; border:2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.5);"></div>` }) }).addTo(map);
@@ -304,8 +337,8 @@
 
             // Click Handler
             useEffect(() => {
-                if (!mapInstanceRef.current) return;
                 const map = mapInstanceRef.current;
+                if (!map) return;
                 const clickHandler = (e) => { if (onMapClick) onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng }); };
                 if (onMapClick) { map.getContainer().classList.add('cursor-crosshair'); map.on('click', clickHandler); }
                 else { map.getContainer().classList.remove('cursor-crosshair'); map.off('click', clickHandler); }
@@ -314,8 +347,9 @@
 
             // User Location
             useEffect(() => {
-                if (!mapInstanceRef.current || !window.L || !userLocation) return;
                 const map = mapInstanceRef.current;
+                if (!map || !window.L || !userLocation) return;
+                
                 if (!userLocationMarkerRef.current) {
                     const userIcon = window.L.divIcon({ className: 'custom-div-icon', html: '<div class="user-location-icon" style="width: 24px; height: 24px;"></div>', iconSize: [24, 24], iconAnchor: [12, 12] });
                     userLocationMarkerRef.current = window.L.marker([userLocation.lat, userLocation.lng], { icon: userIcon }).addTo(map).bindPopup("Vị trí của bạn");
@@ -323,29 +357,6 @@
                 map.setView([userLocation.lat, userLocation.lng], 16);
             }, [userLocation]);
 
-            // Markers Update
-            useEffect(() => { if (mapInstanceRef.current && window.L) updateLayers(mapInstanceRef.current); }, [markers, activeLayers]);
-
-            const updateLayers = (map) => {
-                layersRef.current.forEach(layer => { try { map.removeLayer(layer); } catch(e) {} });
-                layersRef.current = [];
-                markers.forEach(feature => {
-                    if (activeLayers.includes(feature.type) && feature.isVisible !== false) {
-                        try {
-                            if (!feature.geometryType || feature.geometryType === 'point') {
-                                const m = window.L.marker([feature.lat, feature.lng], { icon: window.L.divIcon({ className: 'custom-div-icon', html: `<div style="background-color:${feature.type === 'C' ? '#FF5252' : (feature.type === 'E' ? '#FFD740' : '#448AFF')}; width:16px; height:16px; border-radius:50%; border:3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"></div>` }) }).bindPopup(feature.label).addTo(map);
-                                layersRef.current.push(m);
-                            } else if (feature.geometryType === 'polygon' && feature.coordinates) {
-                                const p = window.L.polygon(feature.coordinates, { color: '#00E676', fillColor: '#69F0AE', fillOpacity: 0.4, weight: 3 }).bindPopup(feature.label).addTo(map);
-                                layersRef.current.push(p);
-                            } else if (feature.geometryType === 'polyline' && feature.coordinates) {
-                                const l = window.L.polyline(feature.coordinates, { color: '#2C3E50', weight: 5, dashArray: '10, 10', opacity: 0.8 }).bindPopup(feature.label).addTo(map);
-                                layersRef.current.push(l);
-                            }
-                        } catch(e) { }
-                    }
-                });
-            };
             return <div ref={mapContainerRef} className="w-full h-full z-0" />;
         };
 
@@ -718,8 +729,8 @@
                                                 <label className="text-xs font-bold text-slate-500">Nhập 4 đáp án & Chọn đáp án đúng:</label>
                                                 {[optA, optB, optC, optD].map((opt, idx) => (
                                                     <div key={idx} className="flex gap-2 items-center">
-                                                        <input type="radio" name="correctOpt" checked={correctOpt == idx} onChange={() => setCorrectOpt(idx.toString())} className="w-4 h-4 text-brand-blue accent-brand-blue"/>
-                                                        <input required className={`flex-1 p-2 rounded-lg border-2 text-sm ${correctOpt == idx ? 'border-brand-blue bg-blue-50' : 'border-slate-200'}`} placeholder={`Đáp án ${String.fromCharCode(65+idx)}`} value={idx===0?optA:idx===1?optB:idx===2?optC:optD} onChange={e => {
+                                                        <input type="radio" name="correctOpt" checked={correctOpt === idx.toString()} onChange={() => setCorrectOpt(idx.toString())} className="w-4 h-4 text-brand-blue accent-brand-blue"/>
+                                                        <input required className={`flex-1 p-2 rounded-lg border-2 text-sm ${correctOpt === idx.toString() ? 'border-brand-blue bg-blue-50' : 'border-slate-200'}`} placeholder={`Đáp án ${String.fromCharCode(65+idx)}`} value={idx===0?optA:idx===1?optB:idx===2?optC:optD} onChange={e => {
                                                             if(idx===0) setOptA(e.target.value);
                                                             if(idx===1) setOptB(e.target.value);
                                                             if(idx===2) setOptC(e.target.value);
@@ -749,7 +760,7 @@
                                                 <h4 className="font-bold text-slate-800 mb-2 pr-16">{q.question}</h4>
                                                 {q.image && <img src={q.image} className="h-20 object-cover rounded-lg mb-2 border border-slate-200" alt="Minh họa"/>}
                                                 <div className="grid grid-cols-2 gap-2 text-sm">
-                                                    {q.options.map((opt, i) => (
+                                                    {q.options?.map((opt, i) => (
                                                         <div key={i} className={`p-2 rounded border ${i === q.correctOption ? 'bg-green-100 border-green-500 text-green-800 font-bold' : 'bg-slate-50 border-slate-100 text-slate-500'}`}>
                                                             {String.fromCharCode(65+i)}. {opt}
                                                         </div>
@@ -910,12 +921,18 @@
                         ) : (
                             <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div><label className="font-bold text-slate-700 block mb-1">Tên của bạn</label><input className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold focus:border-purple-400 outline-none" placeholder="VD: Bé Bi lớp 3A" value={name} onChange={e=>setName(e.target.value)} /></div>
-                                    <div><label className="font-bold text-slate-700 block mb-1">Loại sự cố</label><select className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold focus:border-purple-400 outline-none" value={issueType} onChange={e=>setIssueType(e.target.value)}><option>Biển báo hỏng/mờ</option><option>Hố gà/Đường xấu</option><option>Ùn tắc giao thông</option><option>Đi xe không mũ bảo hiểm</option><option>Khác</option></select></div>
+                                    <div>
+                                        <label htmlFor="r-name" className="font-bold text-slate-700 block mb-1">Tên của bạn</label>
+                                        <input id="r-name" className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold focus:border-purple-400 outline-none" placeholder="VD: Bé Bi lớp 3A" value={name} onChange={e=>setName(e.target.value)} />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="r-type" className="font-bold text-slate-700 block mb-1">Loại sự cố</label>
+                                        <select id="r-type" className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold focus:border-purple-400 outline-none" value={issueType} onChange={e=>setIssueType(e.target.value)}><option>Biển báo hỏng/mờ</option><option>Hố gà/Đường xấu</option><option>Ùn tắc giao thông</option><option>Đi xe không mũ bảo hiểm</option><option>Khác</option></select>
+                                    </div>
                                 </div>
                                 <div><label className="font-bold text-slate-700 block mb-2">Mức độ khẩn cấp</label><div className="flex gap-2">{urgencyOptions.map(opt => (<button type="button" key={opt.val} onClick={() => setUrgency(opt.val)} className={`flex-1 py-3 rounded-xl font-bold border-2 transition-all ${urgency === opt.val ? 'border-black shadow-cartoon transform -translate-y-1 ' + opt.color + ' text-white' : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'}`}>{opt.label}</button>))}</div></div>
-                                <div><label className="font-bold text-slate-700 block mb-1">Mô tả sự việc *</label><textarea required className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 h-24 font-bold focus:border-purple-400 outline-none resize-none" placeholder="Kể chi tiết hơn cho chúng tớ nghe nhé..." value={content} onChange={e=>setContent(e.target.value)}></textarea></div>
-                                <div><label className="font-bold text-slate-700 block mb-1 flex items-center gap-2"><Camera className="w-4 h-4"/> Link Ảnh minh họa (Nếu có)</label><input className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 text-sm focus:border-purple-400 outline-none" placeholder="https://..." value={imageLink} onChange={e=>setImageLink(e.target.value)} /></div>
+                                <div><label htmlFor="r-desc" className="font-bold text-slate-700 block mb-1">Mô tả sự việc *</label><textarea id="r-desc" required className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 h-24 font-bold focus:border-purple-400 outline-none resize-none" placeholder="Kể chi tiết hơn cho chúng tớ nghe nhé..." value={content} onChange={e=>setContent(e.target.value)}></textarea></div>
+                                <div><label htmlFor="r-img" className="font-bold text-slate-700 block mb-1 flex items-center gap-2"><Camera className="w-4 h-4"/> Link Ảnh minh họa (Nếu có)</label><input id="r-img" className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 text-sm focus:border-purple-400 outline-none" placeholder="https://..." value={imageLink} onChange={e=>setImageLink(e.target.value)} /></div>
                                 <button disabled={status === 'sending'} className="w-full bg-purple-600 text-white font-black text-lg py-4 rounded-2xl shadow-cartoon btn-cartoon hover:bg-purple-700 flex items-center justify-center gap-2">{status === 'sending' ? 'Đang gửi...' : <>GỬI BÁO CÁO NGAY <Siren className="animate-pulse"/></>}</button>
                             </form>
                         )}
@@ -1016,7 +1033,7 @@
                             </h3>
                             
                             <div className="grid gap-3">
-                                {questions[idx].options.map((ans, i) => (
+                                {questions[idx].options?.map((ans, i) => (
                                     <button 
                                         key={i} 
                                         onClick={() => handleAns(i)} 
@@ -1091,8 +1108,9 @@
 
                     <form onSubmit={handleLogin} className="space-y-4">
                         <div>
-                            <label className="font-bold text-slate-700 block mb-1">Email</label>
+                            <label htmlFor="login-email" className="font-bold text-slate-700 block mb-1">Email</label>
                             <input 
+                                id="login-email"
                                 type="email" 
                                 required
                                 className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold focus:border-brand-blue outline-none transition-colors" 
@@ -1102,8 +1120,9 @@
                             />
                         </div>
                         <div>
-                            <label className="font-bold text-slate-700 block mb-1">Mật khẩu</label>
+                            <label htmlFor="login-password" className="font-bold text-slate-700 block mb-1">Mật khẩu</label>
                             <input 
+                                id="login-password"
                                 type="password" 
                                 required
                                 className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold focus:border-brand-blue outline-none transition-colors" 
