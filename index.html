@@ -3,15 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Văn hóa Giao thông Xanh - Trường TH Nam Hà</title>
+    <title>Biệt Đội Giao Thông Xanh - Trường TH Nam Hà - Hà Tĩnh </title>
     
+    <!-- Google Fonts: Baloo 2 & Nunito -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400..800&family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap" rel="stylesheet">
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Nunito', 'sans-serif'],
+                        display: ['"Baloo 2"', 'cursive', 'sans-serif'],
+                    },
+                    colors: {
+                        traffic: {
+                            red: '#FF5252',
+                            yellow: '#FFD740', 
+                            green: '#00E676',
+                            dark: '#2C3E50',
+                            light: '#ECEFF1',
+                        },
+                        brand: {
+                            blue: '#448AFF',
+                        }
+                    },
+                    boxShadow: {
+                        'cartoon': '0 6px 0 rgba(0,0,0,0.15)',
+                        'cartoon-hover': '0 3px 0 rgba(0,0,0,0.15)',
+                        'soft': '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
+                    },
+                    animation: {
+                        'bounce-slow': 'bounce 3s infinite',
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                        'cloud-move': 'floatCloud 10s linear infinite',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        floatCloud: {
+                            '0%': { transform: 'translateX(0)' },
+                            '50%': { transform: 'translateX(10px)' },
+                            '100%': { transform: 'translateX(0)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     
-    <!-- Leaflet CSS (Bản đồ) -->
+    <!-- Leaflet CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
-    <!-- Tải Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <!-- Import Map -->
@@ -27,60 +75,67 @@
       }
     }
     </script>
-
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
     <style>
-        /* Custom Styles */
+        body { 
+            background-color: #f0f4f8; 
+            background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        
+        /* Map Custom Styles */
         .custom-div-icon { background: transparent; border: none; }
-        .leaflet-popup-content-wrapper { border-radius: 0.5rem; padding: 0; overflow: hidden; }
-        .leaflet-popup-content { margin: 0.5rem; font-family: sans-serif; font-size: 0.875rem; }
+        .leaflet-popup-content-wrapper { border-radius: 1rem; border: 3px solid #FFD740; box-shadow: 0 6px 0 rgba(0,0,0,0.1); }
+        .leaflet-popup-content { font-family: 'Nunito', sans-serif; font-weight: 700; margin: 0.8rem; }
         .cursor-crosshair { cursor: crosshair !important; }
         
-        /* Rich Text Styles */
-        .rte-content { white-space: pre-wrap; word-wrap: break-word; line-height: 1.6; }
-        .rte-content h1 { font-size: 2em; font-weight: bold; margin: 0.67em 0; }
-        .rte-content h2 { font-size: 1.5em; font-weight: bold; margin: 0.83em 0; }
-        .rte-content p, .rte-content div { margin: 0.5em 0; }
-        .rte-content ul { list-style-type: disc; padding-left: 40px; margin: 1em 0; }
-        .rte-content ol { list-style-type: decimal; padding-left: 40px; margin: 1em 0; }
-        .rte-content blockquote { margin: 1em 40px; padding-left: 10px; border-left: 4px solid #ccc; color: #666; }
-        .rte-content img { max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; }
+        /* Interactive Elements */
+        .btn-cartoon { transition: all 0.1s; }
+        .btn-cartoon:active { transform: translateY(3px); box-shadow: 0 0 0 rgba(0,0,0,0.15) !important; }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        /* Rich Text Styles */
+        .rte-content h1, .rte-content h2 { font-family: 'Baloo 2', cursive; color: #2C3E50; }
+        .rte-content img { border: 4px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 12px; max-width: 100%; height: auto; }
         
-        /* Pulse animation for user location */
+        /* User Location Pulse */
         @keyframes pulse-blue {
             0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+            70% { box-shadow: 0 0 0 15px rgba(59, 130, 246, 0); }
             100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
         }
         .user-location-icon {
             background-color: #3b82f6;
-            border: 2px solid white;
+            border: 3px solid white;
             border-radius: 50%;
             animation: pulse-blue 2s infinite;
         }
+        
+        /* Leaflet Z-Index fixes */
+        .leaflet-pane { z-index: 10; }
+        .leaflet-top, .leaflet-bottom { z-index: 20; }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-800">
+<body class="text-slate-700 antialiased selection:bg-traffic-yellow selection:text-slate-900">
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
         import React, { useState, useEffect, useRef, useMemo } from 'react';
         import { createRoot } from 'react-dom/client';
+        // Đổi tên Map thành MapIcon để tránh xung đột với object Map của JS hoặc Leaflet
         import { 
-          Map, AlertTriangle, FileText, Megaphone, Shield, 
+          Map as MapIcon, AlertTriangle, FileText, Megaphone, Shield, 
           Award, LogIn, Plus, Trash2, Save, Menu, X, Edit,
           Navigation, Info, User, Layout, MapPin, CheckSquare, XCircle,
           Eye, EyeOff, MousePointer2, Undo2, ArrowLeft, Calendar,
-          Bold, Italic, Underline, Search, MessageSquare, CheckCircle, HelpCircle, LocateFixed
+          Bold, Italic, Underline, Search, MessageSquare, CheckCircle, HelpCircle, LocateFixed,
+          GraduationCap, BookOpen, Star, Heart, Camera, Flag, Siren, Layers, Video,
+          Settings, Database, List
         } from 'lucide-react';
         import { initializeApp } from 'firebase/app';
         import { 
           getFirestore, collection, addDoc, getDocs, 
-          deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp, updateDoc, limit 
+          deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp, updateDoc, limit, where, setDoc, getDoc 
         } from 'firebase/firestore';
         import { 
           getAuth, signInWithEmailAndPassword, signOut, 
@@ -92,7 +147,12 @@
             constructor(props) { super(props); this.state = { hasError: false, error: null }; }
             static getDerivedStateFromError(error) { return { hasError: true, error }; }
             render() {
-                if (this.state.hasError) return (<div className="p-8 text-center text-red-600 bg-red-50 border border-red-200 rounded m-4"><h2 className="text-xl font-bold mb-2">Đã xảy ra lỗi!</h2><p className="text-sm">{this.state.error.toString()}</p><button onClick={() => window.location.reload()} className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Tải lại trang</button></div>);
+                if (this.state.hasError) return (
+                    <div className="p-8 text-center text-red-500 font-bold bg-white rounded-xl shadow-cartoon m-4">
+                        Ôi hỏng rồi! Gọi đội cứu hộ thôi! 🚑 <br/>
+                        <button onClick={() => window.location.reload()} className="mt-4 bg-traffic-blue text-white px-4 py-2 rounded-full">Thử lại</button>
+                    </div>
+                );
                 return this.props.children;
             }
         }
@@ -112,72 +172,95 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
 
+        // --- Constants ---
         const MAP_LAYERS = [
-            { id: 'A', label: 'Trường TH Nam Hà (TT)', color: 'text-blue-700', icon: <MapPin className="w-4 h-4" /> },
-            { id: 'B', label: 'Tuyến đường HS đi', color: 'text-gray-600', icon: <Navigation className="w-4 h-4" /> },
-            { id: 'C', label: 'Điểm Nguy cơ/Ùn tắc', color: 'text-red-600', icon: <AlertTriangle className="w-4 h-4" /> },
-            { id: 'D', label: 'Khu vực Đưa đón An toàn', color: 'text-green-600', icon: <Shield className="w-4 h-4" /> },
-            { id: 'E', label: 'Chốt trực (CA/Đoàn)', color: 'text-yellow-600', icon: <User className="w-4 h-4" /> },
+            { id: 'A', label: 'Trường TH Nam Hà', color: 'text-brand-blue', bg: 'bg-blue-100', icon: <MapPin className="w-4 h-4" /> },
+            { id: 'B', label: 'Tuyến đường HS đi', color: 'text-slate-600', bg: 'bg-slate-100', icon: <Navigation className="w-4 h-4" /> },
+            { id: 'C', label: 'Điểm Nguy cơ/Ùn tắc', color: 'text-red-500', bg: 'bg-red-100', icon: <AlertTriangle className="w-4 h-4" /> },
+            { id: 'D', label: 'Khu vực An toàn', color: 'text-traffic-green', bg: 'bg-green-100', icon: <Shield className="w-4 h-4" /> },
+            { id: 'E', label: 'Chốt trực (CA/Đoàn)', color: 'text-traffic-yellow', bg: 'bg-yellow-100', icon: <User className="w-4 h-4" /> },
         ];
 
-        // --- Component: Header ---
+        // --- Header ---
         const Header = ({ setCurrentPage, user, onLogout }) => {
             const [isMenuOpen, setIsMenuOpen] = useState(false);
             const navItems = [
-                { id: 'home', label: 'Trang chủ' },
-                { id: 'news', label: 'Tin tức' },
-                { id: 'docs', label: 'Văn bản' },
-                { id: 'model', label: 'Mô hình' },
-                { id: 'skills', label: 'Kỹ năng' },
-                { id: 'quiz', label: 'Trắc nghiệm' }, 
-                { id: 'feedback', label: 'Góp ý' }, 
-                { id: 'map', label: 'Bản đồ' },
+                { id: 'home', label: 'Trang chủ', icon: <Star className="w-4 h-4"/>, color: 'hover:bg-traffic-green' },
+                { id: 'news', label: 'Tin tức', icon: <Megaphone className="w-4 h-4"/>, color: 'hover:bg-brand-blue' },
+                { id: 'skills', label: 'Kỹ năng', icon: <BookOpen className="w-4 h-4"/>, color: 'hover:bg-traffic-yellow' },
+                { id: 'quiz', label: 'Đố vui', icon: <Award className="w-4 h-4"/>, color: 'hover:bg-traffic-red' }, 
+                { id: 'reporter', label: 'Phóng viên', icon: <Camera className="w-4 h-4"/>, color: 'hover:bg-purple-500' }, 
+                { id: 'map', label: 'Bản đồ', icon: <MapIcon className="w-4 h-4"/>, color: 'hover:bg-traffic-dark' },
             ];
+
             return (
-                <header className="bg-blue-800 text-white shadow-lg sticky top-0 z-50">
-                <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-                    <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setCurrentPage('home')}>
-                        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center border-2 border-red-500"><Shield className="text-blue-800 w-8 h-8" /></div>
-                        <div><h1 className="font-bold text-lg md:text-xl uppercase leading-tight">Văn hóa Giao thông Xanh</h1><p className="text-xs md:text-sm opacity-90">Trường TH Nam Hà - Hà Tĩnh</p></div>
+                <header className="bg-white border-b-4 border-traffic-dark sticky top-0 z-50">
+                    <div className="container mx-auto px-4 py-2 flex justify-between items-center">
+                        <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setCurrentPage('home')}>
+                            <div className="relative">
+                                {/* TRAFFIC LIGHT LOGO */}
+                                <div className="w-12 h-12 bg-traffic-dark rounded-xl flex flex-col items-center justify-center gap-1.5 border-2 border-white shadow-lg group-hover:rotate-6 transition-transform py-1">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-traffic-red shadow-[0_0_6px_#FF5252] animate-pulse"></div>
+                                    <div className="w-2.5 h-2.5 rounded-full bg-traffic-yellow opacity-60"></div>
+                                    <div className="w-2.5 h-2.5 rounded-full bg-traffic-green opacity-60"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <h1 className="font-display font-black text-xl md:text-2xl text-traffic-dark uppercase tracking-tight leading-none">Biệt Đội <span className="text-traffic-green">Giao Thông</span></h1>
+                                <p className="text-xs font-bold text-slate-400 bg-slate-100 inline-block px-2 py-0.5 rounded-full mt-1">Trường TH Nam Hà</p>
+                            </div>
+                        </div>
+
+                        <nav className="hidden xl:flex items-center gap-2">
+                            {navItems.map(item => (
+                                <button key={item.id} onClick={() => setCurrentPage(item.id)} className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-slate-600 transition-all hover:text-white btn-cartoon shadow-cartoon hover:shadow-cartoon-hover ${item.color}`}>
+                                    {item.label}
+                                </button>
+                            ))}
+                            {user ? (
+                                <button onClick={() => setCurrentPage('admin')} className="ml-4 bg-traffic-red text-white px-5 py-2 rounded-full font-bold shadow-cartoon btn-cartoon flex items-center gap-2">
+                                    <User className="w-4 h-4"/> Admin
+                                </button>
+                            ) : (
+                                <button onClick={() => setCurrentPage('login')} className="ml-4 bg-traffic-yellow text-traffic-dark px-5 py-2 rounded-full font-black shadow-cartoon btn-cartoon flex items-center gap-2 border-2 border-traffic-dark">
+                                    <LogIn className="w-4 h-4" /> Đăng nhập
+                                </button>
+                            )}
+                        </nav>
+                        <button className="xl:hidden p-2 bg-slate-100 rounded-lg" onClick={() => setIsMenuOpen(!isMenuOpen)}>{isMenuOpen ? <X /> : <Menu />}</button>
                     </div>
-                    <nav className="hidden lg:flex space-x-1">
-                        {navItems.map(item => (
-                            <button key={item.id} onClick={() => setCurrentPage(item.id)} className="px-3 py-2 text-sm hover:bg-blue-700 rounded transition font-medium whitespace-nowrap">{item.label}</button>
-                        ))}
-                        {user ? <button onClick={onLogout} className="bg-red-500 px-3 py-2 rounded text-sm hover:bg-red-600 ml-2 flex items-center gap-1"><span className="font-bold">Admin</span></button> : <button onClick={() => setCurrentPage('login')} className="bg-yellow-500 text-blue-900 px-3 py-2 rounded text-sm hover:bg-yellow-400 ml-2 font-bold flex items-center gap-1 whitespace-nowrap"><LogIn className="w-4 h-4" /> Đăng nhập</button>}
-                    </nav>
-                    <button className="lg:hidden p-2" onClick={() => setIsMenuOpen(!isMenuOpen)}>{isMenuOpen ? <X /> : <Menu />}</button>
-                </div>
-                {isMenuOpen && (
-                    <div className="lg:hidden bg-blue-900 p-4 space-y-2">
-                    {navItems.map(item => (<button key={item.id} onClick={() => { setCurrentPage(item.id); setIsMenuOpen(false); }} className="block w-full text-left px-4 py-2 hover:bg-blue-800 rounded">{item.label}</button>))}
-                    {user ? <button onClick={onLogout} className="block w-full text-left px-4 py-2 bg-red-600 rounded">Đăng xuất (Admin)</button> : <button onClick={() => {setCurrentPage('login'); setIsMenuOpen(false);}} className="block w-full text-left px-4 py-2 bg-yellow-500 text-blue-900 rounded font-bold">Đăng nhập Quản trị</button>}
-                    </div>
-                )}
+                    {isMenuOpen && (
+                        <div className="xl:hidden bg-white border-t-2 border-slate-100 p-4 absolute w-full shadow-xl">
+                            <div className="grid grid-cols-2 gap-3">
+                                {navItems.map(item => (<button key={item.id} onClick={() => { setCurrentPage(item.id); setIsMenuOpen(false); }} className="flex flex-col items-center justify-center p-4 bg-slate-50 rounded-xl hover:bg-slate-100 font-bold text-slate-700"><div className={`p-2 rounded-full text-white mb-2 ${item.color.replace('hover:', '')}`}>{item.icon}</div>{item.label}</button>))}
+                            </div>
+                            <div className="mt-4 pt-4 border-t border-dashed">
+                                {user ? <button onClick={() => setCurrentPage('admin')} className="w-full bg-red-100 text-red-600 py-3 rounded-xl font-bold">Trang Quản trị</button> : <button onClick={() => {setCurrentPage('login'); setIsMenuOpen(false);}} className="w-full bg-traffic-yellow text-traffic-dark py-3 rounded-xl font-bold shadow-cartoon btn-cartoon">Đăng nhập Quản trị</button>}
+                            </div>
+                        </div>
+                    )}
                 </header>
             );
         };
 
-        // --- Rich Text Editor ---
+        // --- Simple Rich Text Editor ---
         const SimpleRichTextEditor = ({ value, onChange }) => {
             const editorRef = useRef(null);
-            useEffect(() => { if (editorRef.current) editorRef.current.innerHTML = value || ''; }, []);
+            useEffect(() => { if (editorRef.current && editorRef.current.innerHTML !== value) editorRef.current.innerHTML = value || ''; }, [value]);
             const execCmd = (command, val = null) => { document.execCommand(command, false, val); editorRef.current.focus(); };
             return (
-                <div className="border rounded bg-white">
-                    <div className="flex flex-wrap gap-2 p-2 border-b bg-gray-50">
-                        <button type="button" onClick={() => execCmd('bold')} className="p-1 hover:bg-gray-200 rounded" title="In đậm"><Bold className="w-4 h-4"/></button>
-                        <button type="button" onClick={() => execCmd('italic')} className="p-1 hover:bg-gray-200 rounded" title="In nghiêng"><Italic className="w-4 h-4"/></button>
-                        <button type="button" onClick={() => execCmd('underline')} className="p-1 hover:bg-gray-200 rounded" title="Gạch chân"><Underline className="w-4 h-4"/></button>
-                        <div className="h-6 w-px bg-gray-300 mx-1"></div>
-                        <select onChange={(e) => execCmd('fontSize', e.target.value)} className="text-xs border rounded p-1" defaultValue="3"><option value="2">Nhỏ</option><option value="3">Vừa</option><option value="4">Lớn</option><option value="6">Tiêu đề</option></select>
+                <div className="border-2 border-slate-200 rounded-xl bg-white overflow-hidden">
+                    <div className="flex gap-1 p-2 bg-slate-50 border-b border-slate-200">
+                        {['bold', 'italic', 'underline'].map(cmd => (
+                            <button key={cmd} type="button" onClick={() => execCmd(cmd)} className="p-2 hover:bg-white rounded font-bold capitalize">{cmd[0]}</button>
+                        ))}
                     </div>
-                    <div ref={editorRef} contentEditable className="p-4 min-h-[200px] focus:outline-none rte-content" onInput={() => onChange(editorRef.current.innerHTML)} style={{ overflowY: 'auto' }}></div>
+                    <div ref={editorRef} contentEditable suppressContentEditableWarning={true} className="p-4 min-h-[150px] focus:outline-none rte-content" onInput={() => onChange(editorRef.current.innerHTML)}></div>
                 </div>
             );
         };
 
-        // --- Leaflet Map ---
+        // --- Leaflet Map Component ---
         const LeafletMap = ({ markers, activeLayers, onMapClick, drawingData, userLocation }) => {
             const mapContainerRef = useRef(null);
             const mapInstanceRef = useRef(null);
@@ -185,7 +268,10 @@
             const drawingLayerRef = useRef(null);
             const userLocationMarkerRef = useRef(null);
 
-            useEffect(() => { if (window.L && !mapInstanceRef.current) initMap(); }, []);
+            useEffect(() => { 
+                if (window.L && !mapInstanceRef.current) initMap(); 
+                return () => { if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; } };
+            }, []);
 
             const initMap = () => {
                 if (!mapContainerRef.current || window.L === undefined) return;
@@ -195,42 +281,11 @@
                 updateLayers(map);
             };
 
-            // Handle Map Click
-            useEffect(() => {
-                if (!mapInstanceRef.current) return;
-                const map = mapInstanceRef.current;
-                const clickHandler = (e) => { if (onMapClick) onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng }); };
-                if (onMapClick) { map.getContainer().classList.add('cursor-crosshair'); map.on('click', clickHandler); }
-                else { map.getContainer().classList.remove('cursor-crosshair'); map.off('click', clickHandler); }
-                return () => { map.off('click', clickHandler); };
-            }, [onMapClick]);
-
-            // Handle User Location Marker
+            // Drawing logic
             useEffect(() => {
                 if (!mapInstanceRef.current || !window.L) return;
                 const map = mapInstanceRef.current;
-                
-                if (userLocation) {
-                    if (!userLocationMarkerRef.current) {
-                        const userIcon = window.L.divIcon({
-                            className: 'custom-div-icon',
-                            html: '<div class="user-location-icon" style="width: 20px; height: 20px;"></div>',
-                            iconSize: [20, 20],
-                            iconAnchor: [10, 10]
-                        });
-                        userLocationMarkerRef.current = window.L.marker([userLocation.lat, userLocation.lng], { icon: userIcon }).addTo(map).bindPopup("Vị trí của bạn");
-                    } else {
-                        userLocationMarkerRef.current.setLatLng([userLocation.lat, userLocation.lng]);
-                    }
-                    map.setView([userLocation.lat, userLocation.lng], 16);
-                }
-            }, [userLocation]);
-
-            // Handle Drawing
-            useEffect(() => {
-                if (!mapInstanceRef.current || !window.L) return;
-                const map = mapInstanceRef.current;
-                if (drawingLayerRef.current) drawingLayerRef.current.forEach(l => map.removeLayer(l));
+                if (drawingLayerRef.current) drawingLayerRef.current.forEach(l => { try { map.removeLayer(l); } catch(e) {} });
                 drawingLayerRef.current = [];
                 if (!drawingData) return;
                 const { type, points } = drawingData;
@@ -247,127 +302,56 @@
                 }
             }, [drawingData]);
 
+            // Click Handler
+            useEffect(() => {
+                if (!mapInstanceRef.current) return;
+                const map = mapInstanceRef.current;
+                const clickHandler = (e) => { if (onMapClick) onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng }); };
+                if (onMapClick) { map.getContainer().classList.add('cursor-crosshair'); map.on('click', clickHandler); }
+                else { map.getContainer().classList.remove('cursor-crosshair'); map.off('click', clickHandler); }
+                return () => { map.off('click', clickHandler); };
+            }, [onMapClick]);
+
+            // User Location
+            useEffect(() => {
+                if (!mapInstanceRef.current || !window.L || !userLocation) return;
+                const map = mapInstanceRef.current;
+                if (!userLocationMarkerRef.current) {
+                    const userIcon = window.L.divIcon({ className: 'custom-div-icon', html: '<div class="user-location-icon" style="width: 24px; height: 24px;"></div>', iconSize: [24, 24], iconAnchor: [12, 12] });
+                    userLocationMarkerRef.current = window.L.marker([userLocation.lat, userLocation.lng], { icon: userIcon }).addTo(map).bindPopup("Vị trí của bạn");
+                } else { userLocationMarkerRef.current.setLatLng([userLocation.lat, userLocation.lng]); }
+                map.setView([userLocation.lat, userLocation.lng], 16);
+            }, [userLocation]);
+
+            // Markers Update
             useEffect(() => { if (mapInstanceRef.current && window.L) updateLayers(mapInstanceRef.current); }, [markers, activeLayers]);
 
             const updateLayers = (map) => {
-                layersRef.current.forEach(layer => map.removeLayer(layer));
+                layersRef.current.forEach(layer => { try { map.removeLayer(layer); } catch(e) {} });
                 layersRef.current = [];
                 markers.forEach(feature => {
                     if (activeLayers.includes(feature.type) && feature.isVisible !== false) {
                         try {
                             if (!feature.geometryType || feature.geometryType === 'point') {
-                                const m = window.L.marker([feature.lat, feature.lng], { icon: window.L.divIcon({ className: 'custom-div-icon', html: `<div style="background-color:${feature.type === 'C' ? 'red' : (feature.type === 'E' ? 'gold' : 'blue')}; width:14px; height:14px; border-radius:50%; border:2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.5);"></div>` }) }).bindPopup(feature.label).addTo(map);
+                                const m = window.L.marker([feature.lat, feature.lng], { icon: window.L.divIcon({ className: 'custom-div-icon', html: `<div style="background-color:${feature.type === 'C' ? '#FF5252' : (feature.type === 'E' ? '#FFD740' : '#448AFF')}; width:16px; height:16px; border-radius:50%; border:3px solid white; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"></div>` }) }).bindPopup(feature.label).addTo(map);
                                 layersRef.current.push(m);
                             } else if (feature.geometryType === 'polygon' && feature.coordinates) {
-                                const p = window.L.polygon(feature.coordinates, { color: 'green', fillColor: '#4ade80', fillOpacity: 0.4, weight: 2 }).bindPopup(feature.label).addTo(map);
+                                const p = window.L.polygon(feature.coordinates, { color: '#00E676', fillColor: '#69F0AE', fillOpacity: 0.4, weight: 3 }).bindPopup(feature.label).addTo(map);
                                 layersRef.current.push(p);
                             } else if (feature.geometryType === 'polyline' && feature.coordinates) {
-                                const l = window.L.polyline(feature.coordinates, { color: '#4b5563', weight: 4, dashArray: '5, 10', opacity: 0.7 }).bindPopup(feature.label).addTo(map);
+                                const l = window.L.polyline(feature.coordinates, { color: '#2C3E50', weight: 5, dashArray: '10, 10', opacity: 0.8 }).bindPopup(feature.label).addTo(map);
                                 layersRef.current.push(l);
                             }
-                        } catch(e) { console.warn("Skipping invalid marker", feature); }
+                        } catch(e) { }
                     }
                 });
             };
-            return <div ref={mapContainerRef} className="w-full h-96 z-0" />;
-        };
-
-        // --- NEW FEATURE: TRAFFIC QUIZ ---
-        const TrafficQuiz = () => {
-            const questions = [
-                { q: "Khi gặp đèn tín hiệu giao thông màu đỏ, em phải làm gì?", a: ["Đi chậm lại", "Dừng lại trước vạch dừng", "Tiếp tục đi nếu vắng", "Rẽ phải ngay lập tức"], correct: 1 },
-                { q: "Biển báo nào cấm đi ngược chiều?", a: ["Biển hình tròn đỏ có gạch chéo", "Biển hình tròn đỏ có gạch ngang trắng", "Biển hình tam giác vàng", "Biển hình vuông xanh"], correct: 1 },
-                { q: "Trẻ em dưới bao nhiêu tuổi không được đi xe đạp điện?", a: ["16 tuổi", "14 tuổi", "12 tuổi", "10 tuổi"], correct: 0 },
-                { q: "Khi ngồi sau xe máy, em cần làm gì để đảm bảo an toàn?", a: ["Đội mũ bảo hiểm cài quai đúng quy cách", "Cầm ô che nắng", "Đứng lên yên xe", "Không cần làm gì cả"], correct: 0 },
-                { q: "Vạch kẻ đường dành cho người đi bộ có hình dáng như thế nào?", a: ["Vạch đứt quãng", "Vạch liền màu vàng", "Các vạch trắng song song (vạch ngựa vằn)", "Hình thoi"], correct: 2 },
-            ];
-            const [currentQ, setCurrentQ] = useState(0);
-            const [score, setScore] = useState(0);
-            const [showScore, setShowScore] = useState(false);
-            const [selectedAns, setSelectedAns] = useState(null);
-
-            const handleAnswer = (idx) => {
-                setSelectedAns(idx);
-                if (idx === questions[currentQ].correct) setScore(score + 1);
-                setTimeout(() => {
-                    const nextQ = currentQ + 1;
-                    if (nextQ < questions.length) { setCurrentQ(nextQ); setSelectedAns(null); } 
-                    else setShowScore(true);
-                }, 1000);
-            };
-
-            const restart = () => { setScore(0); setCurrentQ(0); setShowScore(false); setSelectedAns(null); };
-
-            return (
-                <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8 animate-fade-in">
-                    <h2 className="text-2xl font-bold text-blue-800 mb-6 text-center flex items-center justify-center gap-2"><Award className="text-yellow-500"/> Thử tài An toàn Giao thông</h2>
-                    {showScore ? (
-                        <div className="text-center space-y-4">
-                            <div className="text-6xl mb-4">{score >= 4 ? '🏆' : score >= 3 ? '😊' : '📚'}</div>
-                            <h3 className="text-xl font-bold">Bạn trả lời đúng {score} / {questions.length} câu!</h3>
-                            <p className="text-gray-600">{score >= 4 ? "Tuyệt vời! Bạn là chiến sĩ giao thông tí hon!" : "Hãy ôn lại kiến thức nhé!"}</p>
-                            <button onClick={restart} className="bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700 font-bold">Làm lại</button>
-                        </div>
-                    ) : (
-                        <div>
-                            <div className="mb-4 flex justify-between text-sm text-gray-500"><span>Câu hỏi {currentQ + 1}/{questions.length}</span><span>Điểm: {score}</span></div>
-                            <div className="mb-6"><h3 className="text-lg font-bold text-gray-800">{questions[currentQ].q}</h3></div>
-                            <div className="space-y-3">
-                                {questions[currentQ].a.map((ans, idx) => (
-                                    <button key={idx} onClick={() => handleAnswer(idx)} disabled={selectedAns !== null}
-                                        className={`w-full text-left p-4 rounded border transition ${selectedAns !== null ? (idx === questions[currentQ].correct ? 'bg-green-100 border-green-500 text-green-800' : idx === selectedAns ? 'bg-red-100 border-red-500 text-red-800' : 'bg-gray-50') : 'hover:bg-blue-50 border-gray-200'}`}>
-                                        {ans}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </div>
-            );
-        };
-
-        // --- NEW FEATURE: FEEDBACK FORM ---
-        const FeedbackForm = () => {
-            const [name, setName] = useState('');
-            const [content, setContent] = useState('');
-            const [status, setStatus] = useState('');
-
-            const handleSubmit = async (e) => {
-                e.preventDefault();
-                setStatus('sending');
-                try {
-                    await addDoc(collection(db, 'feedback'), {
-                        name: name || 'Ẩn danh',
-                        content,
-                        createdAt: serverTimestamp(),
-                        isRead: false
-                    });
-                    setStatus('success'); setName(''); setContent('');
-                } catch (err) { setStatus('error'); }
-            };
-
-            return (
-                <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8 animate-fade-in">
-                    <h2 className="text-2xl font-bold text-blue-800 mb-4 flex items-center gap-2"><MessageSquare /> Góc Ý kiến - Phản ánh</h2>
-                    <p className="text-gray-600 mb-6 text-sm">Phụ huynh và học sinh có thể gửi ý kiến đóng góp, báo cáo điểm đen hoặc đề xuất giải pháp ATGT tại đây. (Có thể ẩn danh)</p>
-                    {status === 'success' ? (
-                        <div className="bg-green-50 text-green-700 p-4 rounded text-center"><CheckCircle className="inline w-8 h-8 mb-2"/><p>Cảm ơn bạn! Ý kiến đã được gửi đến Ban quản trị.</p><button onClick={() => setStatus('')} className="mt-2 text-sm underline">Gửi ý kiến khác</button></div>
-                    ) : (
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div><label className="block font-bold mb-1">Họ và tên (Tùy chọn)</label><input className="w-full border p-2 rounded" value={name} onChange={e=>setName(e.target.value)} placeholder="Để trống nếu muốn ẩn danh"/></div>
-                            <div><label className="block font-bold mb-1">Nội dung phản ánh *</label><textarea required className="w-full border p-2 rounded h-32" value={content} onChange={e=>setContent(e.target.value)} placeholder="VD: Cống thoát nước cổng sau bị mất nắp..."></textarea></div>
-                            <button disabled={status === 'sending'} className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 font-bold w-full">{status === 'sending' ? 'Đang gửi...' : 'Gửi Ý kiến'}</button>
-                            {status === 'error' && <p className="text-red-500 text-center">Lỗi khi gửi. Vui lòng thử lại.</p>}
-                        </form>
-                    )}
-                </div>
-            );
+            return <div ref={mapContainerRef} className="w-full h-full z-0" />;
         };
 
         // --- Interactive Map Container ---
         const InteractiveMap = ({ isAdmin, onMapClick, drawingData }) => {
             const [activeLayers, setActiveLayers] = useState(['A', 'B', 'C', 'D', 'E']);
-            const [parentMode, setParentMode] = useState(false);
             const [markers, setMarkers] = useState([]);
             const [loading, setLoading] = useState(true);
             const [userLocation, setUserLocation] = useState(null);
@@ -379,62 +363,142 @@
                     const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                     setMarkers(data.length ? data : []);
                     setLoading(false);
-                }, (error) => { console.error("Lỗi tải bản đồ:", error); setLoading(false); });
+                }, () => setLoading(false));
                 return () => unsubscribe();
             }, []);
 
             const toggleLayer = (id) => activeLayers.includes(id) ? setActiveLayers(activeLayers.filter(l => l !== id)) : setActiveLayers([...activeLayers, id]);
-            const toggleParentMode = () => { setParentMode(!parentMode); setActiveLayers(!parentMode ? ['C', 'D'] : ['A', 'B', 'C', 'D', 'E']); };
             
             const locateUser = () => {
                 if (navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            setUserLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
-                        },
-                        () => alert("Không thể lấy vị trí của bạn. Hãy kiểm tra quyền truy cập GPS."),
-                        { enableHighAccuracy: true }
+                        (position) => { setUserLocation({ lat: position.coords.latitude, lng: position.coords.longitude }); },
+                        () => alert("Không thể lấy vị trí."), { enableHighAccuracy: true }
                     );
-                } else {
-                    alert("Trình duyệt của bạn không hỗ trợ định vị.");
-                }
+                } else alert("Trình duyệt không hỗ trợ.");
             };
 
             return (
-                <div className="bg-white p-4 rounded-lg shadow-md">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
-                        <div><h2 className="text-2xl font-bold text-blue-800 flex items-center gap-2"><Map className="w-6 h-6" /> Bản đồ Giao thông số (GIS)</h2><p className="text-sm text-gray-500">Dữ liệu thực tế khu vực Phường Thành Sen - OpenStreetMap</p></div>
-                        <div className="flex gap-2 items-center">
-                            {isAdmin && <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded flex items-center animate-pulse"><MousePointer2 className="w-3 h-3 mr-1"/> Chọn điểm</span>}
-                            <button onClick={locateUser} className="bg-blue-100 text-blue-600 p-2 rounded-full hover:bg-blue-200" title="Vị trí của tôi"><LocateFixed className="w-5 h-5"/></button>
-                            <button onClick={toggleParentMode} className={`px-4 py-2 rounded-full font-bold text-sm transition ${parentMode ? 'bg-green-600 text-white' : 'bg-gray-200 text-gray-700'}`}>{parentMode ? 'Chế độ Phụ huynh' : 'Chế độ Phụ huynh'}</button>
+                <div className="bg-white p-6 rounded-3xl shadow-cartoon border-4 border-slate-200">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                        <div>
+                            <h2 className="font-display text-2xl font-black text-slate-800 flex items-center gap-2">
+                                <span className="bg-blue-100 p-2 rounded-xl text-brand-blue"><MapIcon className="w-6 h-6" /></span> Bản đồ Giao thông số
+                            </h2>
+                            <p className="text-sm font-bold text-slate-400 mt-1 ml-1">Dữ liệu thực tế khu vực Phường Thành Sen</p>
+                        </div>
+                        <div className="flex flex-wrap gap-3 items-center">
+                            {isAdmin && <span className="text-xs bg-yellow-100 text-yellow-800 px-3 py-1.5 rounded-full font-black flex items-center border-2 border-yellow-200 animate-pulse"><MousePointer2 className="w-3 h-3 mr-1"/> Click bản đồ để chọn</span>}
+                            <button onClick={locateUser} className="bg-sky-100 text-brand-blue px-4 py-2 rounded-full hover:bg-sky-200 font-bold flex items-center gap-2 btn-cartoon border-2 border-sky-200" title="Vị trí của tôi"><LocateFixed className="w-4 h-4"/> Vị trí của tôi</button>
                         </div>
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                        <div className="lg:col-span-1 space-y-3 bg-slate-50 p-4 rounded border">
-                            <h3 className="font-bold text-gray-700">Lớp dữ liệu (Layers)</h3>
-                            {MAP_LAYERS.map(layer => (<div key={layer.id} className="flex items-center gap-2 cursor-pointer" onClick={() => toggleLayer(layer.id)}><div className={`w-5 h-5 rounded border flex items-center justify-center ${activeLayers.includes(layer.id) ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-400'}`}>{activeLayers.includes(layer.id) && <CheckSquare className="w-3 h-3 text-white" />}</div><span className={`text-sm ${layer.color} font-medium flex items-center gap-2`}>{layer.icon} {layer.label}</span></div>))}
-                            <div className="mt-6 border-t pt-4"><h3 className="font-bold text-gray-700 mb-2">Chú thích</h3><div className="text-xs space-y-2 text-gray-600"><div className="flex items-center gap-2"><div className="w-3 h-3 bg-green-400 opacity-50 border border-green-600"></div> Vùng an toàn</div><div className="flex items-center gap-2"><div className="w-6 h-1 bg-gray-500 border-t border-dashed"></div> Tuyến đường HS</div><div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-red-600 border-2 border-white shadow"></div> Điểm đen/Ùn tắc</div>{isAdmin && <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-pink-500 border-2 border-white shadow animate-pulse"></div> Đang vẽ/chọn</div>}</div></div>
+                        <div className="lg:col-span-1 space-y-3 bg-slate-50 p-5 rounded-2xl border-2 border-slate-200 h-fit">
+                            <h3 className="font-display font-bold text-slate-700 mb-3 flex items-center gap-2"><Layers className="w-4 h-4"/> Lớp dữ liệu</h3>
+                            {MAP_LAYERS.map(layer => (
+                                <div key={layer.id} className={`flex items-center gap-3 cursor-pointer group p-3 rounded-xl transition-all border-2 ${activeLayers.includes(layer.id) ? 'bg-white border-brand-blue shadow-sm' : 'border-transparent hover:bg-white'}`} onClick={() => toggleLayer(layer.id)}>
+                                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors ${activeLayers.includes(layer.id) ? 'bg-brand-blue text-white' : 'bg-slate-200 text-slate-400'}`}>
+                                        {activeLayers.includes(layer.id) && <CheckSquare className="w-3.5 h-3.5" />}
+                                    </div>
+                                    <span className={`text-sm font-bold flex items-center gap-2 ${layer.color}`}>{layer.icon} {layer.label}</span>
+                                </div>
+                            ))}
                         </div>
-                        <div className="lg:col-span-3 bg-blue-50 h-96 rounded-xl border-2 border-blue-200 relative overflow-hidden group z-0">{loading ? <div className="absolute inset-0 flex items-center justify-center">Đang tải bản đồ...</div> : <LeafletMap markers={markers} activeLayers={activeLayers} onMapClick={onMapClick} drawingData={drawingData} userLocation={userLocation} />}</div>
+                        <div className="lg:col-span-3 bg-indigo-50 h-[500px] rounded-2xl border-4 border-slate-200 shadow-inner relative overflow-hidden group z-0">
+                            {loading ? <div className="absolute inset-0 flex items-center justify-center font-bold text-brand-blue animate-pulse">Đang tải bản đồ...</div> : <LeafletMap markers={markers} activeLayers={activeLayers} onMapClick={onMapClick} drawingData={drawingData} userLocation={userLocation} />}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- News Feed Component ---
+        const NewsFeed = () => {
+            const [news, setNews] = useState([]);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                const q = query(collection(db, 'news'), orderBy('createdAt', 'desc'));
+                const unsubscribe = onSnapshot(q, (snapshot) => {
+                    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    setNews(data);
+                    setLoading(false);
+                });
+                return () => unsubscribe();
+            }, []);
+
+            if (loading) return <div className="text-center p-10 font-bold text-slate-400">Đang tải tin tức...</div>;
+
+            return (
+                <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
+                    <h2 className="font-display text-3xl font-black text-slate-800 text-center mb-8">
+                        <span className="bg-brand-blue text-white px-4 py-2 rounded-xl shadow-cartoon transform -rotate-2 inline-block">Tin Tức</span> & Sự Kiện
+                    </h2>
+                    <div className="grid gap-6">
+                        {news.map(item => (
+                            <div key={item.id} className="bg-white rounded-3xl p-6 border-b-8 border-r-8 border-slate-200 border-t-2 border-l-2 border-slate-100 shadow-xl relative overflow-hidden group hover:-translate-y-1 transition-transform duration-300">
+                                 <div className="absolute top-0 right-0 bg-traffic-yellow px-4 py-2 rounded-bl-2xl font-black text-xs text-slate-800 uppercase tracking-wider">{item.category || 'Tin tức'}</div>
+                                 <div className="mb-2 text-slate-400 text-xs font-bold flex items-center gap-1">
+                                    <Calendar className="w-3 h-3"/> {item.createdAt?.seconds ? new Date(item.createdAt.seconds * 1000).toLocaleDateString('vi-VN') : 'Mới cập nhật'}
+                                 </div>
+                                 <h3 className="font-display text-2xl font-black text-slate-800 mb-3 group-hover:text-brand-blue transition-colors">{item.title}</h3>
+                                 <div className="text-slate-600 prose prose-slate max-w-none font-medium" dangerouslySetInnerHTML={{ __html: item.content }} />
+                            </div>
+                        ))}
+                        {news.length === 0 && <div className="text-center font-bold text-slate-400 py-10 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">Chưa có tin tức nào được đăng.</div>}
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Skills Page Component ---
+        const SkillsPage = () => {
+            const [skills, setSkills] = useState([]);
+            const [loading, setLoading] = useState(true);
+
+            useEffect(() => {
+                const q = query(collection(db, 'skills'), orderBy('createdAt', 'desc'));
+                const unsubscribe = onSnapshot(q, (snapshot) => {
+                    const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    setSkills(data);
+                    setLoading(false);
+                });
+                return () => unsubscribe();
+            }, []);
+
+            if (loading) return <div className="text-center p-10 font-bold text-slate-400">Đang tải kỹ năng...</div>;
+
+            return (
+                <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
+                    <h2 className="font-display text-3xl font-black text-slate-800 text-center mb-8">
+                        <span className="bg-traffic-yellow text-slate-900 px-4 py-2 rounded-xl shadow-cartoon transform rotate-2 inline-block">Góc Kỹ Năng</span> An Toàn
+                    </h2>
+                    <div className="grid md:grid-cols-2 gap-6">
+                        {skills.map(item => (
+                            <div key={item.id} className="bg-white rounded-3xl p-6 border-b-8 border-traffic-yellow border-t-2 border-x-2 border-slate-200 shadow-xl relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300">
+                                 <div className="mb-2 text-slate-500 text-xs font-bold flex items-center gap-2 uppercase tracking-wider">
+                                    <BookOpen className="w-4 h-4 text-traffic-yellow"/> {item.category || 'Kỹ năng chung'}
+                                 </div>
+                                 <h3 className="font-display text-xl font-black text-slate-800 mb-3 group-hover:text-yellow-600 transition-colors">{item.title}</h3>
+                                 <div className="text-slate-600 prose prose-slate max-w-none text-sm font-medium" dangerouslySetInnerHTML={{ __html: item.content }} />
+                            </div>
+                        ))}
+                        {skills.length === 0 && <div className="col-span-2 text-center font-bold text-slate-400 py-10 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">Chưa có bài học kỹ năng nào.</div>}
                     </div>
                 </div>
             );
         };
 
         // --- Admin Dashboard ---
-        const AdminDashboard = () => {
+        const AdminDashboard = ({ onLogout }) => {
             const [activeTab, setActiveTab] = useState('news'); 
             const [title, setTitle] = useState('');
             const [content, setContent] = useState('');
-            const [backgroundImage, setBackgroundImage] = useState('');
             const [category, setCategory] = useState('Tin tức');
             const [status, setStatus] = useState('');
             const [editingId, setEditingId] = useState(null);
-            const [adminPosts, setAdminPosts] = useState([]);
-            const [adminDocs, setAdminDocs] = useState([]);
-            const [mapItems, setMapItems] = useState([]);
-            const [feedbacks, setFeedbacks] = useState([]);
+            
+            // Map logic variables
             const [geometryType, setGeometryType] = useState('point'); 
             const [lat, setLat] = useState('');
             const [lng, setLng] = useState('');
@@ -442,47 +506,120 @@
             const [markerType, setMarkerType] = useState('C');
             const [isVisible, setIsVisible] = useState(true); 
 
+            // Quiz Management States
+            const [quizSubTab, setQuizSubTab] = useState('questions'); // 'categories', 'questions', 'settings'
+            const [quizCategories, setQuizCategories] = useState([]);
+            const [quizQuestions, setQuizQuestions] = useState([]);
+            const [quizSettings, setQuizSettings] = useState({ quizLimit: 10 });
+            
+            // Quiz Form States
+            const [qText, setQText] = useState('');
+            const [qImg, setQImg] = useState('');
+            const [optA, setOptA] = useState('');
+            const [optB, setOptB] = useState('');
+            const [optC, setOptC] = useState('');
+            const [optD, setOptD] = useState('');
+            const [correctOpt, setCorrectOpt] = useState('0'); // Index 0-3
+            const [targetCat, setTargetCat] = useState(''); // ID of category
+            const [catName, setCatName] = useState(''); // For category form
+            const [quizLimitInput, setQuizLimitInput] = useState(10);
+
+            // Lists
+            const [adminPosts, setAdminPosts] = useState([]);
+            const [adminDocs, setAdminDocs] = useState([]);
+            const [adminSkills, setAdminSkills] = useState([]);
+            const [mapItems, setMapItems] = useState([]);
+            const [reports, setReports] = useState([]);
+
             useEffect(() => {
                 let unsubscribe = () => {};
-                // Thêm limit(50) để tối ưu hiệu năng
                 if (activeTab === 'news') { const q = query(collection(db, 'news'), orderBy('createdAt', 'desc'), limit(50)); unsubscribe = onSnapshot(q, (s) => setAdminPosts(s.docs.map(d => ({id: d.id, ...d.data()})))); }
                 else if (activeTab === 'docs') { const q = query(collection(db, 'documents'), orderBy('createdAt', 'desc'), limit(50)); unsubscribe = onSnapshot(q, (s) => setAdminDocs(s.docs.map(d => ({id: d.id, ...d.data()})))); }
+                else if (activeTab === 'skills') { const q = query(collection(db, 'skills'), orderBy('createdAt', 'desc'), limit(50)); unsubscribe = onSnapshot(q, (s) => setAdminSkills(s.docs.map(d => ({id: d.id, ...d.data()})))); } 
                 else if (activeTab === 'map') { const q = query(collection(db, 'map_markers'), orderBy('createdAt', 'desc')); unsubscribe = onSnapshot(q, (s) => setMapItems(s.docs.map(d => ({id: d.id, ...d.data()})))); }
-                else if (activeTab === 'feedback') { const q = query(collection(db, 'feedback'), orderBy('createdAt', 'desc'), limit(50)); unsubscribe = onSnapshot(q, (s) => setFeedbacks(s.docs.map(d => ({id: d.id, ...d.data()})))); }
+                else if (activeTab === 'reports') { const q = query(collection(db, 'reports'), orderBy('createdAt', 'desc'), limit(50)); unsubscribe = onSnapshot(q, (s) => setReports(s.docs.map(d => ({id: d.id, ...d.data()})))); }
+                else if (activeTab === 'quiz') {
+                    // Load Quiz Data based on subtab or load all initially
+                    const unsubCats = onSnapshot(query(collection(db, 'quiz_categories'), orderBy('createdAt', 'desc')), (s) => setQuizCategories(s.docs.map(d => ({id: d.id, ...d.data()}))));
+                    const unsubQs = onSnapshot(query(collection(db, 'quiz_questions'), orderBy('createdAt', 'desc')), (s) => setQuizQuestions(s.docs.map(d => ({id: d.id, ...d.data()}))));
+                    const unsubSettings = onSnapshot(doc(db, 'quiz_settings', 'config'), (doc) => {
+                         if (doc.exists()) { setQuizSettings(doc.data()); setQuizLimitInput(doc.data().quizLimit); }
+                    });
+                    unsubscribe = () => { unsubCats(); unsubQs(); unsubSettings(); };
+                }
                 return () => unsubscribe();
             }, [activeTab]);
 
-            const resetForm = () => { setTitle(''); setContent(''); setBackgroundImage(''); setCategory('Tin tức'); setLat(''); setLng(''); setCoordString(''); setIsVisible(true); setEditingId(null); };
-            const handleEdit = (item) => {
-                setEditingId(item.id); setTitle(item.title); setCategory(item.category || 'Tin tức');
-                if (activeTab === 'map') {
-                    setMarkerType(item.type); setGeometryType(item.geometryType || 'point'); setIsVisible(item.isVisible !== false);
-                    if (item.geometryType === 'point' || !item.geometryType) { setLat(item.lat); setLng(item.lng); setCoordString(''); }
-                    else { setCoordString(item.coordinates.map(p => p.join(',')).join('; ')); setLat(''); setLng(''); }
-                } else { setContent(item.content); setBackgroundImage(item.backgroundImage || ''); }
+            const resetForm = () => { 
+                setTitle(''); setContent(''); setCategory(activeTab === 'skills' ? 'Đi bộ an toàn' : 'Tin tức'); 
+                setLat(''); setLng(''); setCoordString(''); setIsVisible(true); setEditingId(null);
+                // Quiz reset
+                setQText(''); setQImg(''); setOptA(''); setOptB(''); setOptC(''); setOptD(''); setCorrectOpt('0'); setTargetCat(''); setCatName('');
             };
+            
+            const handleEdit = (item) => {
+                setEditingId(item.id); 
+                if (activeTab === 'map') {
+                    setTitle(item.label); setMarkerType(item.type); setGeometryType(item.geometryType || 'point'); setIsVisible(item.isVisible !== false);
+                    if (item.geometryType === 'point' || !item.geometryType) { setLat(item.lat); setLng(item.lng); setCoordString(''); }
+                    else { setCoordString(item.coordinates?.map(p => p.join(',')).join('; ') || ''); setLat(''); setLng(''); }
+                } else if (activeTab === 'quiz') {
+                    if (quizSubTab === 'categories') { setCatName(item.name); }
+                    if (quizSubTab === 'questions') {
+                         setQText(item.question); setQImg(item.image || ''); setOptA(item.options[0]); setOptB(item.options[1]); setOptC(item.options[2]); setOptD(item.options[3]);
+                         setCorrectOpt(item.correctOption.toString()); setTargetCat(item.categoryId);
+                    }
+                } else { 
+                    setTitle(item.title || item.label); setContent(item.content); setCategory(item.category || (activeTab === 'skills' ? 'Đi bộ an toàn' : 'Tin tức')); 
+                }
+            };
+
             const handleMapClick = (coords) => {
                 if (activeTab !== 'map') return;
                 if (geometryType === 'point') { setLat(coords.lat.toFixed(6)); setLng(coords.lng.toFixed(6)); }
                 else { const pt = `${coords.lat.toFixed(6)},${coords.lng.toFixed(6)}`; setCoordString(prev => prev ? `${prev}; ${pt}` : pt); }
             };
-            const handleUndoPoint = () => { if (!coordString) return; const parts = coordString.split(';').map(s => s.trim()); parts.pop(); setCoordString(parts.join('; ')); };
-            const toggleMapItemVisibility = async (item) => { try { await updateDoc(doc(db, 'map_markers', item.id), { isVisible: item.isVisible === false ? true : false }); } catch (err) { alert("Lỗi: " + err.message); } };
-            const handleDelete = async (col, id) => { if(window.confirm("Bạn có chắc chắn muốn xóa?")) { try { await deleteDoc(doc(db, col, id)); if (editingId === id) resetForm(); } catch(err) { alert("Lỗi: " + err.message); } } };
+
             const handleSubmit = async (e) => {
                 e.preventDefault(); setStatus('Đang xử lý...');
                 try {
-                    let col = activeTab === 'map' ? 'map_markers' : (activeTab === 'news' ? 'news' : 'documents');
-                    let data = activeTab === 'map' ? { label: title, type: markerType, geometryType, isVisible } : { title, content, backgroundImage, category };
-                    if (activeTab === 'map') {
+                    let col;
+                    let data;
+                    if (activeTab === 'map') { col = 'map_markers'; data = { label: title, type: markerType, geometryType, isVisible };
                         if (geometryType === 'point') { data.lat = parseFloat(lat); data.lng = parseFloat(lng); }
                         else { data.coordinates = coordString.split(';').map(p => { const [la, lo] = p.trim().split(','); return [parseFloat(la), parseFloat(lo)]; }); }
                     }
+                    else if (activeTab === 'news') { col = 'news'; data = { title, content, category }; }
+                    else if (activeTab === 'docs') { col = 'documents'; data = { title, content, category }; }
+                    else if (activeTab === 'skills') { col = 'skills'; data = { title, content, category }; }
+
                     if (!editingId) data.createdAt = serverTimestamp();
                     editingId ? await updateDoc(doc(db, col, editingId), data) : await addDoc(collection(db, col), data);
-                    setStatus(editingId ? 'Cập nhật thành công!' : 'Thêm mới thành công!'); resetForm(); setTimeout(() => setStatus(''), 3000);
+                    setStatus('Thành công!'); resetForm(); setTimeout(() => setStatus(''), 2000);
                 } catch (err) { setStatus('Lỗi: ' + err.message); }
             };
+
+            // Specific Quiz Handlers
+            const handleQuizSubmit = async (e) => {
+                e.preventDefault(); setStatus('Đang lưu...');
+                try {
+                    if (quizSubTab === 'categories') {
+                        const data = { name: catName, createdAt: serverTimestamp() };
+                        editingId ? await updateDoc(doc(db, 'quiz_categories', editingId), data) : await addDoc(collection(db, 'quiz_categories'), data);
+                    } else if (quizSubTab === 'questions') {
+                         const data = {
+                            question: qText, image: qImg, options: [optA, optB, optC, optD], correctOption: parseInt(correctOpt), categoryId: targetCat, createdAt: serverTimestamp()
+                         };
+                         editingId ? await updateDoc(doc(db, 'quiz_questions', editingId), data) : await addDoc(collection(db, 'quiz_questions'), data);
+                    } else if (quizSubTab === 'settings') {
+                        await setDoc(doc(db, 'quiz_settings', 'config'), { quizLimit: parseInt(quizLimitInput) });
+                    }
+                    setStatus('Thành công!'); resetForm(); setTimeout(() => setStatus(''), 2000);
+                } catch (err) { setStatus('Lỗi: ' + err.message); }
+            };
+
+            const handleDelete = async (col, id) => { if(window.confirm("Bạn có chắc chắn muốn xóa?")) { await deleteDoc(doc(db, col, id)); } };
+            const handleUpdateReport = async (id, val) => { await updateDoc(doc(db, 'reports', id), { status: val }); };
 
             const drawingData = useMemo(() => {
                 if (activeTab !== 'map') return null;
@@ -494,189 +631,630 @@
                 } catch(e) { return null; }
             }, [activeTab, geometryType, lat, lng, coordString]);
 
+            // Helper to get list for display
+            const getListToRender = () => {
+                if (activeTab === 'map') return mapItems;
+                if (activeTab === 'news') return adminPosts;
+                if (activeTab === 'skills') return adminSkills;
+                return adminDocs;
+            };
+
             return (
-                <div className="bg-white p-6 rounded shadow-lg mt-4">
-                    <h2 className="text-2xl font-bold text-red-700 mb-4 flex items-center gap-2"><Layout className="w-6 h-6" /> Quản trị Hệ thống</h2>
-                    <div className="flex space-x-2 mb-6 border-b pb-2 overflow-x-auto">
-                        <button onClick={() => {setActiveTab('news'); resetForm();}} className={`px-4 py-2 rounded whitespace-nowrap ${activeTab === 'news' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>Tin tức</button>
-                        <button onClick={() => {setActiveTab('docs'); resetForm();}} className={`px-4 py-2 rounded whitespace-nowrap ${activeTab === 'docs' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>Văn bản</button>
-                        <button onClick={() => {setActiveTab('map'); resetForm();}} className={`px-4 py-2 rounded whitespace-nowrap ${activeTab === 'map' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>Bản đồ</button>
-                        <button onClick={() => {setActiveTab('feedback'); resetForm();}} className={`px-4 py-2 rounded whitespace-nowrap ${activeTab === 'feedback' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}>Ý kiến</button>
+                <div className="bg-white p-6 rounded-3xl border-4 border-slate-200 shadow-xl mt-6 animate-fade-in">
+                    <div className="flex justify-between items-center mb-6 border-b-2 border-slate-100 pb-4">
+                        <h2 className="font-display text-2xl font-black text-slate-800 flex items-center gap-2"><User className="w-8 h-8 bg-slate-800 text-white p-1 rounded-lg"/> Trung tâm Chỉ huy Admin</h2>
+                        <button onClick={onLogout} className="text-red-500 font-bold hover:bg-red-50 px-3 py-1 rounded">Đăng xuất</button>
                     </div>
-                    {activeTab === 'feedback' && (
-                        <div className="space-y-4">
-                            <div className="bg-gray-100 p-3 font-bold text-gray-700 flex justify-between"><span>Danh sách Ý kiến</span><span className="text-xs bg-gray-200 px-2 py-1 rounded">{feedbacks.length} mục</span></div>
-                            <div className="max-h-96 overflow-y-auto space-y-2">
-                                {feedbacks.map(fb => (
-                                    <div key={fb.id} className="bg-white border p-4 rounded shadow-sm flex justify-between items-start">
-                                        <div className="flex-1">
-                                            <div className="flex justify-between mb-2"><span className="font-bold text-blue-800">{fb.name}</span><span className="text-xs text-gray-500">{fb.createdAt ? new Date(fb.createdAt.seconds*1000).toLocaleString() : ''}</span></div>
-                                            <p className="text-gray-700">{fb.content}</p>
-                                        </div>
-                                        <button onClick={() => handleDelete('feedback', fb.id)} className="text-red-500 hover:bg-red-100 p-2 rounded ml-2" title="Xóa"><Trash2 className="w-4 h-4" /></button>
-                                    </div>
-                                ))}
-                                {feedbacks.length === 0 && <p className="text-center text-gray-500 py-4">Chưa có ý kiến nào.</p>}
-                            </div>
-                        </div>
-                    )}
-                    {activeTab === 'map' && (
-                        <div className="space-y-6">
-                            <div className="bg-blue-50 p-2 rounded border border-blue-200"><p className="text-sm font-bold text-blue-800 mb-2 flex items-center gap-2"><MousePointer2 className="w-4 h-4"/> Click bản đồ để chọn điểm/vẽ</p><InteractiveMap isAdmin={true} onMapClick={handleMapClick} drawingData={drawingData} /></div>
-                            <form onSubmit={handleSubmit} className="bg-yellow-50 p-4 rounded border border-yellow-200 space-y-4">
-                                <h3 className="font-bold text-yellow-800 border-b border-yellow-200 pb-2">{editingId ? 'Sửa đối tượng' : 'Thêm đối tượng mới'}</h3>
-                                <div><label className="block font-bold mb-1 text-sm">Tên hiển thị</label><input required value={title} onChange={e => setTitle(e.target.value)} className="w-full border p-2 rounded" /></div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div><label className="block font-bold mb-1 text-sm">Loại hình</label><select value={geometryType} onChange={e => {setGeometryType(e.target.value); setCoordString(''); setLat(''); setLng('');}} className="w-full border p-2 rounded"><option value="point">Điểm</option><option value="polyline">Đường</option><option value="polygon">Vùng</option></select></div>
-                                    <div><label className="block font-bold mb-1 text-sm">Lớp</label><select value={markerType} onChange={e => setMarkerType(e.target.value)} className="w-full border p-2 rounded"><option value="A">Trường học</option><option value="B">Tuyến đường</option><option value="C">Điểm nguy cơ</option><option value="D">Vùng an toàn</option><option value="E">Chốt trực</option></select></div>
-                                </div>
-                                {geometryType === 'point' ? (
-                                    <div className="grid grid-cols-2 gap-4 bg-white p-3 rounded border"><div><label className="block font-bold mb-1 text-sm">Vĩ độ</label><input required type="number" step="any" value={lat} onChange={e => setLat(e.target.value)} className="w-full border p-2 rounded bg-gray-50" /></div><div><label className="block font-bold mb-1 text-sm">Kinh độ</label><input required type="number" step="any" value={lng} onChange={e => setLng(e.target.value)} className="w-full border p-2 rounded bg-gray-50" /></div></div>
-                                ) : (
-                                    <div><div className="flex justify-between items-center mb-1"><label className="block font-bold text-sm">Danh sách tọa độ</label>{coordString && <button type="button" onClick={handleUndoPoint} className="text-xs flex items-center gap-1 bg-red-100 text-red-600 px-2 py-1 rounded hover:bg-red-200"><Undo2 className="w-3 h-3"/> Xóa điểm cuối</button>}</div><textarea required value={coordString} onChange={e => setCoordString(e.target.value)} className="w-full border p-2 rounded h-20 font-mono text-xs" /></div>
-                                )}
-                                <div className="flex items-center gap-2 mb-2"><input type="checkbox" checked={isVisible} onChange={e => setIsVisible(e.target.checked)} className="w-4 h-4 text-blue-600" /><label className="text-sm font-bold text-gray-700">Hiển thị</label></div>
-                                <div className="flex gap-2"><button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded flex items-center gap-2 font-bold w-full justify-center">{editingId ? 'Cập nhật' : 'Thêm mới'}</button>{editingId && <button type="button" onClick={resetForm} className="bg-gray-500 text-white px-4 py-2 rounded">Hủy</button>}</div>
-                            </form>
-                            <div className="bg-white border rounded-lg overflow-hidden"><div className="bg-gray-100 p-3 font-bold text-gray-700 flex justify-between"><span>Danh sách</span><span className="text-xs bg-gray-200 px-2 py-1 rounded">{mapItems.length} mục</span></div><div className="max-h-60 overflow-y-auto">{mapItems.map(item => (<div key={item.id} className="p-3 border-b flex justify-between items-center hover:bg-gray-50 text-sm group"><div className="flex items-center gap-3"><button onClick={() => toggleMapItemVisibility(item)} className={`p-1 rounded-full ${item.isVisible !== false ? 'bg-green-100 text-green-600' : 'bg-gray-200 text-gray-400'}`}>{item.isVisible !== false ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}</button><div><span className={`font-bold block ${item.isVisible === false ? 'opacity-50 line-through' : ''}`}>{item.label}</span><span className="text-xs bg-blue-100 text-blue-800 px-1 rounded">Layer {item.type}</span></div></div><div className="flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100"><button onClick={() => handleEdit(item)} className="text-blue-600"><Edit className="w-4 h-4" /></button><button onClick={() => handleDelete('map_markers', item.id)} className="text-red-500"><Trash2 className="w-4 h-4" /></button></div></div>))}</div></div>
-                        </div>
-                    )}
-                    {activeTab === 'news' && (
-                        <div className="space-y-6">
-                            <form onSubmit={handleSubmit} className="bg-blue-50 p-4 rounded border border-blue-200 space-y-4">
-                                <h3 className="font-bold text-blue-800 border-b border-blue-200 pb-2">{editingId ? 'Sửa tin tức' : 'Thêm tin tức mới'}</h3>
-                                <div><label className="block font-bold mb-1">Tiêu đề</label><input required value={title} onChange={e => setTitle(e.target.value)} className="w-full border p-2 rounded" /></div>
-                                <div><label className="block font-bold mb-1">Link Ảnh nền (URL)</label><input value={backgroundImage} onChange={e => setBackgroundImage(e.target.value)} className="w-full border p-2 rounded" placeholder="https://example.com/image.jpg" /></div>
-                                <div><label className="block font-bold mb-1">Chuyên mục</label><select value={category} onChange={e => setCategory(e.target.value)} className="w-full border p-2 rounded"><option>Tin tức</option><option>Gương điển hình</option><option>Kỹ năng</option><option>Cổng trường</option><option>Góc học sinh</option><option>Góc phụ huynh</option></select></div>
-                                <div><label className="block font-bold mb-1">Nội dung</label><SimpleRichTextEditor key={editingId || 'new'} value={content} onChange={setContent} /></div>
-                                <div className="flex gap-2"><button type="submit" className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded flex items-center gap-2 font-bold"><Save className="w-4 h-4" /> {editingId ? 'Cập nhật' : 'Đăng bài'}</button>{editingId && <button type="button" onClick={resetForm} className="bg-gray-500 text-white px-4 py-2 rounded">Hủy</button>}</div>
-                            </form>
-                            <div className="bg-white border rounded-lg overflow-hidden"><div className="bg-gray-100 p-3 font-bold text-gray-700">Danh sách</div><div className="max-h-80 overflow-y-auto">{adminPosts.map(post => (<div key={post.id} className="p-3 border-b flex justify-between hover:bg-gray-50 group"><div className="flex gap-3">{post.backgroundImage && <img src={post.backgroundImage} className="w-12 h-12 object-cover rounded" alt="thumb" />}<div><span className="font-bold block">{post.title}</span><span className="text-xs bg-gray-200 px-2 rounded">{post.category}</span></div></div><div className="flex gap-2 opacity-0 group-hover:opacity-100"><button onClick={() => handleEdit(post)} className="text-blue-600"><Edit className="w-4 h-4"/></button><button onClick={() => handleDelete('news', post.id)} className="text-red-500"><Trash2 className="w-4 h-4"/></button></div></div>))}</div></div>
-                        </div>
-                    )}
-                    {activeTab === 'docs' && (
-                        <div className="space-y-6">
-                            <form onSubmit={handleSubmit} className="bg-blue-50 p-4 rounded border border-blue-200 space-y-4">
-                                <h3 className="font-bold text-blue-800 border-b border-blue-200 pb-2">{editingId ? 'Sửa văn bản' : 'Thêm văn bản mới'}</h3>
-                                <div><label className="block font-bold mb-1">Tên văn bản</label><input required value={title} onChange={e => setTitle(e.target.value)} className="w-full border p-2 rounded" /></div>
-                                <div><label className="block font-bold mb-1">Loại</label><select value={category} onChange={e => setCategory(e.target.value)} className="w-full border p-2 rounded"><option>Văn bản nội bộ</option><option>Văn bản pháp luật</option><option>Mẫu cam kết</option></select></div>
-                                <div><label className="block font-bold mb-1">Link tải</label><input required value={content} onChange={e => setContent(e.target.value)} className="w-full border p-2 rounded" /></div>
-                                <div className="flex gap-2"><button type="submit" className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded flex items-center gap-2 font-bold"><Save className="w-4 h-4" /> {editingId ? 'Cập nhật' : 'Lưu'}</button>{editingId && <button type="button" onClick={resetForm} className="bg-gray-500 text-white px-4 py-2 rounded">Hủy</button>}</div>
-                            </form>
-                            <div className="bg-white border rounded-lg overflow-hidden"><div className="bg-gray-100 p-3 font-bold text-gray-700">Danh sách</div><div className="max-h-80 overflow-y-auto">{adminDocs.map(doc => (<div key={doc.id} className="p-3 border-b flex justify-between hover:bg-gray-50 group"><div><span className="font-bold block">{doc.title}</span><span className="text-xs bg-gray-200 px-2 rounded">{doc.category}</span></div><div className="flex gap-2 opacity-0 group-hover:opacity-100"><button onClick={() => handleEdit(doc)} className="text-blue-600"><Edit className="w-4 h-4"/></button><button onClick={() => handleDelete('documents', doc.id)} className="text-red-500"><Trash2 className="w-4 h-4"/></button></div></div>))}</div></div>
-                        </div>
-                    )}
-                    {status && <p className="mt-4 text-blue-600 font-bold animate-pulse text-center bg-blue-50 p-2 rounded">{status}</p>}
-                </div>
-            );
-        };
-
-        const NewsList = ({ categoryFilter }) => {
-            const [posts, setPosts] = useState([]);
-            const [loading, setLoading] = useState(true);
-            const [selectedPost, setSelectedPost] = useState(null);
-            const [searchTerm, setSearchTerm] = useState('');
-            const [visibleCount, setVisibleCount] = useState(6);
-
-            useEffect(() => { 
-                // Thêm limit(50) để tối ưu hiệu năng
-                const q = query(collection(db, 'news'), orderBy('createdAt', 'desc'), limit(50)); 
-                const unsubscribe = onSnapshot(q, (s) => { 
-                    setPosts(s.docs.map(d => ({ id: d.id, ...d.data() }))); 
-                    setLoading(false); 
-                }); 
-                return () => unsubscribe(); 
-            }, []);
-            
-            const filteredPosts = posts.filter(p => 
-                (!categoryFilter || p.category === categoryFilter) && 
-                (!searchTerm || p.title.toLowerCase().includes(searchTerm.toLowerCase()))
-            );
-
-            const displayedPosts = filteredPosts.slice(0, visibleCount);
-
-            if (selectedPost) {
-                return (
-                    <div className="bg-white rounded-lg shadow-lg overflow-hidden animate-fade-in">
-                        <div className="p-4 border-b flex items-center gap-2 bg-gray-50"><button onClick={() => setSelectedPost(null)} className="flex items-center gap-1 text-blue-600 font-bold hover:bg-blue-100 px-3 py-1 rounded"><ArrowLeft className="w-4 h-4" /> Quay lại</button><span className="text-gray-400">|</span><span className="text-sm text-gray-600 uppercase font-bold">{selectedPost.category}</span></div>
-                        {selectedPost.backgroundImage && <div className="w-full h-64 bg-gray-200"><img src={selectedPost.backgroundImage} alt="Cover" className="w-full h-full object-cover" /></div>}
-                        <div className="p-6 md:p-8"><h1 className="text-3xl font-bold text-gray-800 mb-4">{selectedPost.title}</h1><div className="flex items-center gap-2 text-sm text-gray-500 mb-6"><Calendar className="w-4 h-4" /> {selectedPost.createdAt ? new Date(selectedPost.createdAt.seconds * 1000).toLocaleDateString('vi-VN') : 'Vừa xong'}</div><div className="rte-content text-gray-800 leading-relaxed" dangerouslySetInnerHTML={{ __html: selectedPost.content }} /></div>
+                    
+                    <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+                        <button onClick={() => {setActiveTab('news'); resetForm();}} className={`px-4 py-2 rounded-xl font-bold border-2 transition-all whitespace-nowrap ${activeTab === 'news' ? 'bg-blue-100 border-blue-500 text-blue-700' : 'border-slate-200 text-slate-500'}`}>📰 Tin tức</button>
+                        <button onClick={() => {setActiveTab('skills'); resetForm();}} className={`px-4 py-2 rounded-xl font-bold border-2 transition-all whitespace-nowrap ${activeTab === 'skills' ? 'bg-orange-100 border-orange-500 text-orange-700' : 'border-slate-200 text-slate-500'}`}>🎓 Kỹ năng</button>
+                        <button onClick={() => {setActiveTab('docs'); resetForm();}} className={`px-4 py-2 rounded-xl font-bold border-2 transition-all whitespace-nowrap ${activeTab === 'docs' ? 'bg-yellow-100 border-yellow-500 text-yellow-700' : 'border-slate-200 text-slate-500'}`}>📂 Văn bản</button>
+                        <button onClick={() => {setActiveTab('map'); resetForm();}} className={`px-4 py-2 rounded-xl font-bold border-2 transition-all whitespace-nowrap ${activeTab === 'map' ? 'bg-traffic-dark border-slate-800 text-white' : 'border-slate-200 text-slate-500'}`}>🗺️ Bản đồ (GIS)</button>
+                        <button onClick={() => {setActiveTab('quiz'); resetForm();}} className={`px-4 py-2 rounded-xl font-bold border-2 transition-all whitespace-nowrap ${activeTab === 'quiz' ? 'bg-green-100 border-green-500 text-green-700' : 'border-slate-200 text-slate-500'}`}>❓ Quản lý Đố vui</button>
+                        <button onClick={() => {setActiveTab('reports'); resetForm();}} className={`px-4 py-2 rounded-xl font-bold border-2 transition-all whitespace-nowrap ${activeTab === 'reports' ? 'bg-purple-100 border-purple-500 text-purple-700' : 'border-slate-200 text-slate-500'}`}>📡 Báo cáo Măng non</button>
                     </div>
-                );
-            }
-            return (
-                <div className="space-y-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <h2 className="text-2xl font-bold border-l-4 border-red-500 pl-3 text-gray-800 uppercase">{categoryFilter || 'Tin tức & Sự kiện'}</h2>
-                        <div className="relative">
-                            <input type="text" placeholder="Tìm kiếm tin..." className="pl-9 pr-4 py-2 border rounded-full text-sm w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-blue-500" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}/>
-                            <Search className="w-4 h-4 absolute left-3 top-2.5 text-gray-400"/>
-                        </div>
-                    </div>
-                    {loading ? <p>Đang tải...</p> : (
+
+                    {activeTab === 'quiz' && (
                         <div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {displayedPosts.length > 0 ? displayedPosts.map(post => (
-                                    <div key={post.id} className="bg-white rounded shadow hover:shadow-lg transition overflow-hidden flex flex-col h-full">
-                                        <div className="h-48 bg-gray-200 flex items-center justify-center text-gray-400 relative">{post.backgroundImage ? <img src={post.backgroundImage} alt={post.title} className="w-full h-full object-cover" /> : <Megaphone className="w-12 h-12" />}<span className="absolute top-2 left-2 bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded uppercase opacity-90">{post.category}</span></div>
-                                        <div className="p-4 flex-1 flex flex-col"><h3 className="font-bold text-lg mb-2 line-clamp-2 hover:text-blue-700 cursor-pointer" onClick={() => setSelectedPost(post)}>{post.title}</h3><p className="text-gray-600 text-sm line-clamp-3 mb-4 flex-1">{post.content ? post.content.replace(/<[^>]+>/g, '').substring(0, 120) + '...' : ''}</p><button onClick={() => setSelectedPost(post)} className="text-blue-600 text-sm font-bold hover:underline mt-auto self-start flex items-center gap-1">Xem chi tiết &rarr;</button></div>
+                             <div className="flex gap-4 mb-4 border-b border-slate-100 pb-2">
+                                <button onClick={() => setQuizSubTab('questions')} className={`font-bold flex items-center gap-2 ${quizSubTab === 'questions' ? 'text-brand-blue underline' : 'text-slate-400'}`}><Database size={16}/> Ngân hàng câu hỏi</button>
+                                <button onClick={() => setQuizSubTab('categories')} className={`font-bold flex items-center gap-2 ${quizSubTab === 'categories' ? 'text-brand-blue underline' : 'text-slate-400'}`}><List size={16}/> Danh mục chủ đề</button>
+                                <button onClick={() => setQuizSubTab('settings')} className={`font-bold flex items-center gap-2 ${quizSubTab === 'settings' ? 'text-brand-blue underline' : 'text-slate-400'}`}><Settings size={16}/> Cấu hình thi</button>
+                             </div>
+
+                             {quizSubTab === 'settings' && (
+                                 <div className="bg-slate-50 p-6 rounded-2xl border-2 border-slate-200 max-w-lg">
+                                     <h3 className="font-bold text-slate-700 mb-4">Cấu hình bài thi chung</h3>
+                                     <div className="mb-4">
+                                        <label className="block text-sm font-bold text-slate-600 mb-2">Số lượng câu hỏi hiển thị mỗi lần thi</label>
+                                        <input type="number" className="w-full p-3 rounded-xl border-2 border-slate-200 font-bold" value={quizLimitInput} onChange={(e) => setQuizLimitInput(e.target.value)} />
+                                     </div>
+                                     <button onClick={handleQuizSubmit} className="bg-brand-blue text-white px-6 py-2 rounded-xl font-bold shadow-cartoon btn-cartoon">Lưu cấu hình</button>
+                                     {status && <span className="ml-3 font-bold text-green-600">{status}</span>}
+                                 </div>
+                             )}
+
+                             {quizSubTab === 'categories' && (
+                                 <div className="grid md:grid-cols-3 gap-6">
+                                     <div className="md:col-span-1">
+                                         <form onSubmit={handleQuizSubmit} className="bg-slate-50 p-4 rounded-2xl border-2 border-slate-100">
+                                            <h3 className="font-bold text-slate-700 mb-3">{editingId ? 'Sửa' : 'Thêm'} Danh mục</h3>
+                                            <input required className="w-full p-3 rounded-xl border-2 border-slate-200 font-bold mb-3" placeholder="Tên danh mục (VD: Biển báo)" value={catName} onChange={e=>setCatName(e.target.value)}/>
+                                            <div className="flex gap-2">
+                                                <button className="flex-1 bg-brand-blue text-white py-2 rounded-xl font-bold shadow-cartoon btn-cartoon">{editingId ? 'Cập nhật' : 'Thêm'}</button>
+                                                {editingId && <button type="button" onClick={resetForm} className="px-4 bg-slate-200 rounded-xl font-bold">Hủy</button>}
+                                            </div>
+                                         </form>
+                                     </div>
+                                     <div className="md:col-span-2 space-y-2">
+                                         {quizCategories.map(cat => (
+                                             <div key={cat.id} className="flex justify-between items-center p-3 bg-white border-2 border-slate-100 rounded-xl">
+                                                 <span className="font-bold text-slate-700">{cat.name}</span>
+                                                 <div className="flex gap-2">
+                                                     <button onClick={() => handleEdit(cat)} className="text-blue-500 hover:bg-blue-50 p-2 rounded"><Edit size={16}/></button>
+                                                     <button onClick={() => handleDelete('quiz_categories', cat.id)} className="text-red-500 hover:bg-red-50 p-2 rounded"><Trash2 size={16}/></button>
+                                                 </div>
+                                             </div>
+                                         ))}
+                                         {quizCategories.length === 0 && <p className="text-slate-400 italic">Chưa có danh mục nào.</p>}
+                                     </div>
+                                 </div>
+                             )}
+
+                             {quizSubTab === 'questions' && (
+                                <div className="grid lg:grid-cols-3 gap-6">
+                                    <div className="lg:col-span-1">
+                                         <form onSubmit={handleQuizSubmit} className="bg-slate-50 p-4 rounded-2xl border-2 border-slate-100 space-y-3">
+                                            <h3 className="font-bold text-slate-700 mb-2">{editingId ? 'Sửa câu hỏi' : 'Thêm câu hỏi mới'}</h3>
+                                            <select required className="w-full p-2 rounded-xl border-2 border-slate-200 font-bold text-sm" value={targetCat} onChange={e=>setTargetCat(e.target.value)}>
+                                                <option value="">-- Chọn danh mục --</option>
+                                                {quizCategories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                            </select>
+                                            <textarea required className="w-full p-3 rounded-xl border-2 border-slate-200 font-bold text-sm h-24" placeholder="Nội dung câu hỏi..." value={qText} onChange={e=>setQText(e.target.value)}></textarea>
+                                            <input className="w-full p-2 rounded-xl border-2 border-slate-200 text-sm" placeholder="Link ảnh minh họa (nếu có)" value={qImg} onChange={e=>setQImg(e.target.value)}/>
+                                            
+                                            <div className="space-y-2">
+                                                <label className="text-xs font-bold text-slate-500">Nhập 4 đáp án & Chọn đáp án đúng:</label>
+                                                {[optA, optB, optC, optD].map((opt, idx) => (
+                                                    <div key={idx} className="flex gap-2 items-center">
+                                                        <input type="radio" name="correctOpt" checked={correctOpt == idx} onChange={() => setCorrectOpt(idx.toString())} className="w-4 h-4 text-brand-blue accent-brand-blue"/>
+                                                        <input required className={`flex-1 p-2 rounded-lg border-2 text-sm ${correctOpt == idx ? 'border-brand-blue bg-blue-50' : 'border-slate-200'}`} placeholder={`Đáp án ${String.fromCharCode(65+idx)}`} value={idx===0?optA:idx===1?optB:idx===2?optC:optD} onChange={e => {
+                                                            if(idx===0) setOptA(e.target.value);
+                                                            if(idx===1) setOptB(e.target.value);
+                                                            if(idx===2) setOptC(e.target.value);
+                                                            if(idx===3) setOptD(e.target.value);
+                                                        }}/>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            <div className="flex gap-2 pt-2">
+                                                <button className="flex-1 bg-brand-blue text-white py-2 rounded-xl font-bold shadow-cartoon btn-cartoon">{editingId ? 'Cập nhật' : 'Lưu lại'}</button>
+                                                {editingId && <button type="button" onClick={resetForm} className="px-4 bg-slate-200 rounded-xl font-bold">Hủy</button>}
+                                            </div>
+                                            {status && <p className="text-center text-sm font-bold text-green-600">{status}</p>}
+                                         </form>
                                     </div>
-                                )) : <p className="text-gray-500 col-span-3">Không tìm thấy bài viết nào.</p>}
-                            </div>
-                            {filteredPosts.length > visibleCount && (
-                                <div className="text-center mt-8">
-                                    <button onClick={() => setVisibleCount(prev => prev + 6)} className="bg-white border border-blue-600 text-blue-600 px-6 py-2 rounded-full hover:bg-blue-50 font-bold text-sm transition">Xem thêm tin cũ hơn</button>
+                                    <div className="lg:col-span-2 space-y-3 h-[600px] overflow-y-auto pr-2">
+                                        {quizQuestions.map(q => (
+                                            <div key={q.id} className="bg-white border-2 border-slate-100 rounded-xl p-4 hover:shadow-md transition-shadow relative">
+                                                <div className="absolute top-2 right-2 flex gap-1">
+                                                     <button onClick={() => handleEdit(q)} className="text-blue-500 hover:bg-blue-50 p-1 rounded"><Edit size={16}/></button>
+                                                     <button onClick={() => handleDelete('quiz_questions', q.id)} className="text-red-500 hover:bg-red-50 p-1 rounded"><Trash2 size={16}/></button>
+                                                </div>
+                                                <span className="bg-slate-100 text-slate-500 text-xs font-bold px-2 py-0.5 rounded-full mb-2 inline-block">
+                                                    {quizCategories.find(c => c.id === q.categoryId)?.name || 'Chưa phân loại'}
+                                                </span>
+                                                <h4 className="font-bold text-slate-800 mb-2 pr-16">{q.question}</h4>
+                                                {q.image && <img src={q.image} className="h-20 object-cover rounded-lg mb-2 border border-slate-200" alt="Minh họa"/>}
+                                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                                    {q.options.map((opt, i) => (
+                                                        <div key={i} className={`p-2 rounded border ${i === q.correctOption ? 'bg-green-100 border-green-500 text-green-800 font-bold' : 'bg-slate-50 border-slate-100 text-slate-500'}`}>
+                                                            {String.fromCharCode(65+i)}. {opt}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {quizQuestions.length === 0 && <div className="text-center py-10 text-slate-400 font-bold border-2 border-dashed rounded-xl">Chưa có câu hỏi nào trong ngân hàng.</div>}
+                                    </div>
                                 </div>
-                            )}
+                             )}
+                        </div>
+                    )}
+
+                    {activeTab === 'reports' ? (
+                        <div className="space-y-4">
+                            {reports.map(item => (
+                                <div key={item.id} className="border-2 border-slate-100 rounded-2xl p-4 hover:border-purple-200 transition-colors flex flex-col md:flex-row gap-4">
+                                    {item.image && <img src={item.image} className="w-24 h-24 object-cover rounded-xl border-2 border-slate-200 bg-slate-100" alt="Evidence" />}
+                                    <div className="flex-1">
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-1"><span className={`px-2 py-0.5 rounded text-xs font-black uppercase text-white ${item.urgency === 'high' ? 'bg-traffic-red' : item.urgency === 'medium' ? 'bg-traffic-yellow' : 'bg-traffic-green'}`}>{item.urgency === 'high' ? 'Nguy hiểm' : item.urgency === 'medium' ? 'Cần chú ý' : 'Bình thường'}</span><span className="text-xs font-bold bg-slate-100 px-2 py-0.5 rounded text-slate-500">{item.type}</span></div>
+                                                <h3 className="font-bold text-lg text-slate-800">{item.name} báo cáo</h3>
+                                                <p className="text-slate-600 mt-1">{item.content}</p>
+                                            </div>
+                                            <button onClick={() => handleDelete('reports', item.id)} className="text-slate-300 hover:text-red-500"><Trash2 className="w-5 h-5"/></button>
+                                        </div>
+                                        <div className="mt-4 flex items-center gap-2 bg-slate-50 p-2 rounded-lg w-fit"><span className="text-xs font-bold text-slate-400">Trạng thái:</span><select value={item.status || 'pending'} onChange={(e) => handleUpdateReport(item.id, e.target.value)} className="bg-white border border-slate-200 rounded px-2 py-1 text-sm font-bold outline-none cursor-pointer"><option value="pending">⏳ Đang chờ</option><option value="processing">🛠️ Đang xử lý</option><option value="done">✅ Đã xong</option></select></div>
+                                    </div>
+                                </div>
+                            ))}
+                            {reports.length === 0 && <p className="text-center text-slate-400 font-bold py-10">Chưa có báo cáo nào!</p>}
+                        </div>
+                    ) : activeTab !== 'quiz' && (
+                        <div className="grid lg:grid-cols-3 gap-6">
+                            <div className="lg:col-span-1 space-y-4">
+                                <form onSubmit={handleSubmit} className="bg-slate-50 p-4 rounded-2xl border-2 border-slate-100">
+                                    <h3 className="font-bold text-slate-700 mb-3">{editingId ? 'Sửa' : 'Thêm'} {activeTab === 'map' ? 'Điểm' : (activeTab === 'skills' ? 'Bài học Kỹ năng' : 'Tin/Văn bản')}</h3>
+                                    <div className="space-y-3">
+                                        <input required className="w-full p-3 rounded-xl border-2 border-slate-200 font-bold" placeholder="Tiêu đề / Tên bài" value={title} onChange={e=>setTitle(e.target.value)}/>
+                                        
+                                        {activeTab === 'map' ? (
+                                            <>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <select className="p-2 rounded-xl border-2 font-bold" value={geometryType} onChange={e=>{setGeometryType(e.target.value); setCoordString(''); setLat(''); setLng('');}}><option value="point">Điểm</option><option value="polyline">Đường</option><option value="polygon">Vùng</option></select>
+                                                    <select className="p-2 rounded-xl border-2 font-bold" value={markerType} onChange={e=>setMarkerType(e.target.value)}><option value="A">Trường</option><option value="B">Đường</option><option value="C">Nguy cơ</option><option value="D">An toàn</option><option value="E">Chốt trực</option></select>
+                                                </div>
+                                                {geometryType === 'point' ? (
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        <input type="number" step="any" className="p-2 rounded-xl border-2 font-bold" placeholder="Vĩ độ" value={lat} onChange={e=>setLat(e.target.value)}/>
+                                                        <input type="number" step="any" className="p-2 rounded-xl border-2 font-bold" placeholder="Kinh độ" value={lng} onChange={e=>setLng(e.target.value)}/>
+                                                    </div>
+                                                ) : (
+                                                    <textarea className="w-full p-2 rounded-xl border-2 h-20 text-xs font-mono" placeholder="Click bản đồ để vẽ..." value={coordString} readOnly></textarea>
+                                                )}
+                                                <p className="text-xs text-brand-blue font-bold italic">💡 Tip: Click lên bản đồ bên phải để lấy tọa độ tự động.</p>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <select className="w-full p-3 rounded-xl border-2 border-slate-200 font-bold" value={category} onChange={e=>setCategory(e.target.value)}>
+                                                    {activeTab === 'news' ? (
+                                                        <><option>Tin tức</option><option>Gương điển hình</option><option>Sự kiện</option></> 
+                                                    ) : activeTab === 'skills' ? (
+                                                        <><option>Đi bộ an toàn</option><option>Đi xe đạp</option><option>Đội mũ bảo hiểm</option><option>Ngồi sau xe máy</option></>
+                                                    ) : (
+                                                        <><option>Văn bản nội bộ</option><option>Văn bản pháp luật</option><option>Mẫu cam kết</option></>
+                                                    )}
+                                                </select>
+                                                {(activeTab === 'news' || activeTab === 'skills') ? <SimpleRichTextEditor value={content} onChange={setContent} /> : <input className="w-full p-3 rounded-xl border-2 font-bold" placeholder="Link tải tài liệu" value={content} onChange={e=>setContent(e.target.value)}/>}
+                                            </>
+                                        )}
+                                    </div>
+                                    <div className="flex gap-2 mt-4">
+                                        <button className="flex-1 bg-brand-blue text-white py-2 rounded-xl font-bold shadow-cartoon btn-cartoon">{editingId ? 'Cập nhật' : 'Lưu lại'}</button>
+                                        {editingId && <button type="button" onClick={resetForm} className="px-4 bg-slate-200 rounded-xl font-bold">Hủy</button>}
+                                    </div>
+                                    {status && <p className="text-center text-sm font-bold text-green-600 mt-2">{status}</p>}
+                                </form>
+                                <div className="bg-white border-2 rounded-xl overflow-hidden max-h-60 overflow-y-auto">
+                                    {getListToRender().map(item => (
+                                        <div key={item.id} className="p-3 border-b flex justify-between items-center text-sm hover:bg-slate-50">
+                                            <span className="font-bold truncate w-2/3">{item.title || item.label}</span>
+                                            <div className="flex gap-1">
+                                                <button onClick={() => handleEdit(item)} className="text-blue-500 p-1"><Edit size={16}/></button>
+                                                <button onClick={() => handleDelete(activeTab === 'map' ? 'map_markers' : (activeTab === 'news' ? 'news' : (activeTab === 'skills' ? 'skills' : 'documents')), item.id)} className="text-red-500 p-1"><Trash2 size={16}/></button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            <div className="lg:col-span-2">
+                                {activeTab === 'map' ? (
+                                    <div className="h-[500px] bg-slate-100 rounded-2xl border-4 border-slate-200 overflow-hidden relative">
+                                        <InteractiveMap isAdmin={true} onMapClick={handleMapClick} drawingData={drawingData} />
+                                        <div className="absolute top-2 right-2 bg-white/90 p-2 rounded-lg text-xs font-bold shadow z-[1000]">Chế độ chỉnh sửa đang BẬT</div>
+                                    </div>
+                                ) : (
+                                    <div className="h-full flex items-center justify-center bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 text-slate-400 font-bold p-8 text-center">
+                                        {activeTab === 'skills' ? 
+                                            "Xem trước nội dung kỹ năng sẽ hiển thị ở trang 'Kỹ năng'. Hãy soạn thảo nội dung phong phú!" 
+                                            : 'Chọn "Bản đồ" để xem trước'}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
             );
         };
 
-        const Login = ({ onLoginSuccess }) => {
-            const [email, setEmail] = useState(''); const [password, setPassword] = useState(''); const [error, setError] = useState('');
-            const handleLogin = async (e) => { e.preventDefault(); setError(''); try { await signInWithEmailAndPassword(auth, email, password); onLoginSuccess(); } catch (err) { setError('Đăng nhập thất bại.'); } };
+        // --- Little Reporter (Phóng viên Măng non) ---
+        const LittleReporter = () => {
+            const [name, setName] = useState('');
+            const [issueType, setIssueType] = useState('Hư hỏng cơ sở vật chất');
+            const [urgency, setUrgency] = useState('low'); 
+            const [imageLink, setImageLink] = useState('');
+            const [content, setContent] = useState('');
+            const [status, setStatus] = useState('');
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setStatus('sending');
+                try {
+                    await addDoc(collection(db, 'reports'), {
+                        name: name || 'Ẩn danh',
+                        type: issueType,
+                        urgency: urgency,
+                        image: imageLink,
+                        content,
+                        status: 'pending', 
+                        createdAt: serverTimestamp(),
+                    });
+                    setStatus('success'); setName(''); setContent(''); setImageLink('');
+                } catch (err) { setStatus('error'); }
+            };
+
+            const urgencyOptions = [
+                { val: 'low', label: 'Bình thường', color: 'bg-traffic-green', icon: '🟢' },
+                { val: 'medium', label: 'Cần chú ý', color: 'bg-traffic-yellow', icon: '🟡' },
+                { val: 'high', label: 'Nguy hiểm!', color: 'bg-traffic-red', icon: '🔴' }
+            ];
+
             return (
-                <div className="max-w-md mx-auto mt-10 bg-white p-8 rounded shadow-lg border-t-4 border-blue-800">
-                    <h2 className="text-2xl font-bold text-center mb-6 text-blue-800">Đăng nhập Quản trị</h2>
-                    <form onSubmit={handleLogin} className="space-y-4"><div><label className="block text-gray-700 mb-1">Email</label><input type="email" className="w-full border p-2 rounded" value={email} onChange={e => setEmail(e.target.value)} /></div><div><label className="block text-gray-700 mb-1">Mật khẩu</label><input type="password" className="w-full border p-2 rounded" value={password} onChange={e => setPassword(e.target.value)} /></div>{error && <p className="text-red-500 text-sm">{error}</p>}<button className="w-full bg-blue-800 text-white py-2 rounded hover:bg-blue-900 font-bold">Đăng nhập</button></form>
+                <div className="max-w-2xl mx-auto">
+                    <div className="bg-white rounded-3xl p-8 border-4 border-purple-100 shadow-cartoon relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-6 opacity-10 rotate-12"><Camera size={100} className="text-purple-600"/></div>
+                        <h2 className="font-display text-3xl font-black text-purple-600 mb-2 flex items-center gap-3"><span className="bg-purple-100 p-2 rounded-xl"><Camera/></span> Phóng viên Măng non</h2>
+                        <p className="text-slate-500 mb-6 font-semibold">Thấy điều gì chưa an toàn? Hãy báo ngay cho Biệt đội Giao thông nhé!</p>
+                        {status === 'success' ? (
+                            <div className="bg-green-50 p-8 rounded-2xl text-center border-2 border-green-200 animate-bounce">
+                                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"><CheckCircle className="w-10 h-10 text-green-600"/></div>
+                                <h3 className="font-display text-2xl font-bold text-green-700">Đã gửi tin!</h3>
+                                <p className="text-green-800">Cảm ơn bạn đã góp phần giúp trường an toàn hơn.</p>
+                                <button onClick={() => setStatus('')} className="mt-4 font-bold underline text-green-600">Gửi tin khác</button>
+                            </div>
+                        ) : (
+                            <form onSubmit={handleSubmit} className="space-y-4 relative z-10">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div><label className="font-bold text-slate-700 block mb-1">Tên của bạn</label><input className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold focus:border-purple-400 outline-none" placeholder="VD: Bé Bi lớp 3A" value={name} onChange={e=>setName(e.target.value)} /></div>
+                                    <div><label className="font-bold text-slate-700 block mb-1">Loại sự cố</label><select className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold focus:border-purple-400 outline-none" value={issueType} onChange={e=>setIssueType(e.target.value)}><option>Biển báo hỏng/mờ</option><option>Hố gà/Đường xấu</option><option>Ùn tắc giao thông</option><option>Đi xe không mũ bảo hiểm</option><option>Khác</option></select></div>
+                                </div>
+                                <div><label className="font-bold text-slate-700 block mb-2">Mức độ khẩn cấp</label><div className="flex gap-2">{urgencyOptions.map(opt => (<button type="button" key={opt.val} onClick={() => setUrgency(opt.val)} className={`flex-1 py-3 rounded-xl font-bold border-2 transition-all ${urgency === opt.val ? 'border-black shadow-cartoon transform -translate-y-1 ' + opt.color + ' text-white' : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'}`}>{opt.label}</button>))}</div></div>
+                                <div><label className="font-bold text-slate-700 block mb-1">Mô tả sự việc *</label><textarea required className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 h-24 font-bold focus:border-purple-400 outline-none resize-none" placeholder="Kể chi tiết hơn cho chúng tớ nghe nhé..." value={content} onChange={e=>setContent(e.target.value)}></textarea></div>
+                                <div><label className="font-bold text-slate-700 block mb-1 flex items-center gap-2"><Camera className="w-4 h-4"/> Link Ảnh minh họa (Nếu có)</label><input className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 text-sm focus:border-purple-400 outline-none" placeholder="https://..." value={imageLink} onChange={e=>setImageLink(e.target.value)} /></div>
+                                <button disabled={status === 'sending'} className="w-full bg-purple-600 text-white font-black text-lg py-4 rounded-2xl shadow-cartoon btn-cartoon hover:bg-purple-700 flex items-center justify-center gap-2">{status === 'sending' ? 'Đang gửi...' : <>GỬI BÁO CÁO NGAY <Siren className="animate-pulse"/></>}</button>
+                            </form>
+                        )}
+                    </div>
                 </div>
             );
         };
 
+        // --- Traffic Quiz ---
+        const TrafficQuiz = () => {
+            const [questions, setQuestions] = useState([]);
+            const [idx, setIdx] = useState(0);
+            const [score, setScore] = useState(0);
+            const [finished, setFinished] = useState(false);
+            const [loading, setLoading] = useState(true);
+
+            // Fetch Data on Load
+            useEffect(() => {
+                const initQuiz = async () => {
+                    try {
+                        // 1. Get Settings (Quiz Limit)
+                        let quizLimit = 10;
+                        const settingsSnap = await getDoc(doc(db, 'quiz_settings', 'config'));
+                        if (settingsSnap.exists()) {
+                            quizLimit = settingsSnap.data().quizLimit || 10;
+                        }
+
+                        // 2. Get All Questions
+                        const qSnap = await getDocs(collection(db, 'quiz_questions'));
+                        const allQuestions = qSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+                        // 3. Shuffle & Slice
+                        if (allQuestions.length > 0) {
+                            // Fisher-Yates Shuffle
+                            for (let i = allQuestions.length - 1; i > 0; i--) {
+                                const j = Math.floor(Math.random() * (i + 1));
+                                [allQuestions[i], allQuestions[j]] = [allQuestions[j], allQuestions[i]];
+                            }
+                            setQuestions(allQuestions.slice(0, quizLimit));
+                        }
+                    } catch (err) {
+                        console.error("Lỗi tải câu hỏi:", err);
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+                initQuiz();
+            }, []);
+
+            const handleAns = (i) => {
+                // Check correct option
+                if (i === questions[idx].correctOption) {
+                    setScore(score + 1);
+                }
+                
+                // Move to next or finish
+                if (idx < questions.length - 1) {
+                    setIdx(idx + 1);
+                } else {
+                    setFinished(true);
+                }
+            };
+
+            // Loading State
+            if (loading) return (
+                <div className="max-w-2xl mx-auto bg-white rounded-3xl p-10 text-center shadow-xl border-4 border-slate-100">
+                    <div className="animate-spin w-10 h-10 border-4 border-brand-blue border-t-transparent rounded-full mx-auto mb-4"></div>
+                    <p className="font-bold text-slate-500">Đang trộn đề thi...</p>
+                </div>
+            );
+
+            // Empty State
+            if (questions.length === 0) return (
+                <div className="max-w-2xl mx-auto bg-white rounded-3xl p-10 text-center shadow-xl border-4 border-slate-100">
+                    <div className="text-4xl mb-4">📭</div>
+                    <h3 className="font-display text-xl font-black text-slate-800">Chưa có câu hỏi nào!</h3>
+                    <p className="text-slate-500">Hãy nhờ thầy cô Admin thêm câu hỏi vào ngân hàng nhé.</p>
+                </div>
+            );
+
+            return (
+                <div className="max-w-2xl mx-auto bg-white rounded-3xl border-b-8 border-r-8 border-traffic-red border-t-2 border-l-2 border-slate-800 p-8 shadow-2xl relative animate-fade-in">
+                    <div className="absolute -top-6 -left-6 transform -rotate-12 bg-traffic-yellow px-4 py-2 rounded-lg font-black border-2 border-black shadow-cartoon">ĐỐ VUI!</div>
+                    
+                    {!finished ? (
+                        <div className="text-center">
+                            <div className="flex justify-between items-center mb-6 text-xs font-bold text-slate-400 uppercase tracking-widest">
+                                <span>Câu hỏi {idx + 1}/{questions.length}</span>
+                                <span>Điểm: {score}</span>
+                            </div>
+                            
+                            {questions[idx].image && (
+                                <img src={questions[idx].image} alt="Minh họa" className="mx-auto h-40 object-contain rounded-xl border-2 border-slate-200 mb-4 bg-slate-50" />
+                            )}
+
+                            <h3 className="font-display text-2xl font-black text-slate-800 mb-6 min-h-[4rem] flex items-center justify-center">
+                                {questions[idx].question}
+                            </h3>
+                            
+                            <div className="grid gap-3">
+                                {questions[idx].options.map((ans, i) => (
+                                    <button 
+                                        key={i} 
+                                        onClick={() => handleAns(i)} 
+                                        className="p-4 rounded-xl bg-slate-50 hover:bg-brand-blue hover:text-white font-bold border-2 border-slate-200 transition-all shadow-sm text-left flex items-center gap-3 group"
+                                    >
+                                        <span className="w-8 h-8 rounded-full bg-white text-slate-800 flex items-center justify-center border-2 border-slate-200 group-hover:border-white text-sm font-black">
+                                            {String.fromCharCode(65 + i)}
+                                        </span>
+                                        {ans}
+                                    </button>
+                                ))}
+                            </div>
+                            
+                            <div className="mt-8 flex justify-center gap-1">
+                                {questions.map((_, i) => (
+                                    <div key={i} className={`h-1.5 flex-1 rounded-full transition-colors ${i <= idx ? 'bg-brand-blue' : 'bg-slate-100'}`}></div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="text-center py-8">
+                            <div className="text-6xl mb-4 animate-bounce">
+                                {score === questions.length ? '🏆' : (score > questions.length / 2 ? '🎉' : '😅')}
+                            </div>
+                            <h3 className="font-display text-3xl font-black text-slate-800 mb-2">
+                                {score === questions.length ? 'Tuyệt đỉnh!' : (score > questions.length / 2 ? 'Làm tốt lắm!' : 'Cố gắng hơn nhé!')}
+                            </h3>
+                            <p className="text-xl font-bold text-slate-500 mb-8">
+                                Bạn trả lời đúng <span className="text-brand-blue text-2xl">{score}/{questions.length}</span> câu.
+                            </p>
+                            
+                            <button 
+                                onClick={() => window.location.reload()} 
+                                className="bg-traffic-green text-white px-8 py-4 rounded-2xl font-black shadow-cartoon btn-cartoon flex items-center gap-2 mx-auto"
+                            >
+                                <Undo2 className="w-5 h-5"/> THI LẠI NGAY
+                            </button>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        // --- Login Component ---
+        const Login = () => {
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [error, setError] = useState('');
+            const [isLoading, setIsLoading] = useState(false);
+
+            const handleLogin = async (e) => {
+                e.preventDefault();
+                setIsLoading(true);
+                setError('');
+                try {
+                    await signInWithEmailAndPassword(auth, email, password);
+                } catch (err) {
+                    setError('Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.');
+                    setIsLoading(false);
+                }
+            };
+
+            return (
+                <div className="max-w-md mx-auto bg-white p-8 rounded-3xl border-4 border-traffic-yellow shadow-2xl mt-10">
+                    <div className="text-center mb-6">
+                        <div className="w-20 h-20 bg-traffic-dark rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-cartoon text-white">
+                            <User size={40} />
+                        </div>
+                        <h2 className="font-display text-3xl font-black text-slate-800">Đăng nhập Admin</h2>
+                        <p className="text-slate-500 font-bold text-sm">Hệ thống Quản trị An toàn Giao thông</p>
+                    </div>
+
+                    <form onSubmit={handleLogin} className="space-y-4">
+                        <div>
+                            <label className="font-bold text-slate-700 block mb-1">Email</label>
+                            <input 
+                                type="email" 
+                                required
+                                className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold focus:border-brand-blue outline-none transition-colors" 
+                                placeholder="example@namha.edu.vn"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label className="font-bold text-slate-700 block mb-1">Mật khẩu</label>
+                            <input 
+                                type="password" 
+                                required
+                                className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 font-bold focus:border-brand-blue outline-none transition-colors" 
+                                placeholder="••••••••"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                            />
+                        </div>
+                        
+                        {error && <div className="bg-red-50 text-red-500 p-3 rounded-xl text-sm font-bold text-center border-2 border-red-100">{error}</div>}
+
+                        <button 
+                            disabled={isLoading}
+                            className="w-full bg-brand-blue text-white font-bold py-3 rounded-xl shadow-cartoon btn-cartoon hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+                        >
+                            {isLoading ? 'Đang xử lý...' : <><LogIn size={20}/> Đăng nhập</>}
+                        </button>
+                    </form>
+                </div>
+            );
+        };
+
+        // --- Main App ---
         function App() {
             const [currentPage, setCurrentPage] = useState('home');
             const [user, setUser] = useState(null);
-            const [skillCategory, setSkillCategory] = useState('Góc học sinh');
-            useEffect(() => { const unsubscribe = onAuthStateChanged(auth, setUser); return () => unsubscribe(); }, []);
-            
+            useEffect(() => { const u = onAuthStateChanged(auth, setUser); return () => u(); }, []);
+
+            // --- FIX: Tự động chuyển vào trang Admin khi đăng nhập thành công ---
+            useEffect(() => {
+                if (user && currentPage === 'login') {
+                    setCurrentPage('admin');
+                }
+            }, [user, currentPage]);
+            // -------------------------------------------------------------------
+
             const renderContent = () => {
                 switch(currentPage) {
-                    case 'home': return (<div className="space-y-8"><div className="bg-gradient-to-r from-green-600 to-blue-600 text-white p-8 rounded-xl shadow-lg flex flex-col md:flex-row items-center justify-between"><div className="max-w-2xl"><h2 className="text-3xl font-bold mb-2">Cổng trường An toàn Giao thông</h2><p className="text-lg opacity-90 mb-4">Chung tay xây dựng văn hóa giao thông xanh tại Phường Thành Sen.</p><button onClick={() => setCurrentPage('map')} className="bg-yellow-400 text-blue-900 px-6 py-2 rounded-full font-bold hover:bg-yellow-300 shadow transition">Xem Bản đồ ATGT Ngay</button></div><Shield className="w-32 h-32 opacity-20 md:opacity-40 hidden md:block" /></div><InteractiveMap isAdmin={!!user} /><NewsList categoryFilter={null} /></div>);
-                    case 'news': return <NewsList categoryFilter="Tin tức" />;
-                    case 'model': return (<div className="space-y-6"><div className="bg-white p-6 rounded shadow"><h2 className="text-2xl font-bold text-blue-800 mb-4">Mô hình Cổng trường ATGT</h2><p className="mb-4 text-gray-700">Hệ thống loa tuyên truyền tự động hoạt động vào các khung giờ cao điểm để nhắc nhở phụ huynh và học sinh.</p><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><div className="bg-green-50 p-4 rounded border border-green-200"><h3 className="font-bold text-green-800">Giờ phát thanh Sáng</h3><p className="text-2xl font-mono text-green-600">6:45 - 7:15</p></div><div className="bg-orange-50 p-4 rounded border border-orange-200"><h3 className="font-bold text-orange-800">Giờ phát thanh Chiều</h3><p className="text-2xl font-mono text-orange-600">16:30 - 17:15</p></div></div></div><NewsList categoryFilter="Cổng trường" /></div>);
-                    case 'skills': return (<div><div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8"><div onClick={() => setSkillCategory('Góc học sinh')} className={`bg-pink-50 p-6 rounded-lg border border-pink-200 text-center cursor-pointer hover:shadow-lg transition ${skillCategory === 'Góc học sinh' ? 'ring-2 ring-pink-500' : ''}`}><h3 className="text-xl font-bold text-pink-700 mb-2">Góc Học Sinh</h3><p>Video, Infographic kỹ năng đi bộ, đi xe đạp an toàn.</p></div><div onClick={() => setSkillCategory('Góc phụ huynh')} className={`bg-indigo-50 p-6 rounded-lg border border-indigo-200 text-center cursor-pointer hover:shadow-lg transition ${skillCategory === 'Góc phụ huynh' ? 'ring-2 ring-indigo-500' : ''}`}><h3 className="text-xl font-bold text-indigo-700 mb-2">Góc Phụ Huynh</h3><p>Hướng dẫn đội mũ bảo hiểm, quy định đưa đón.</p></div></div><NewsList categoryFilter={skillCategory} /></div>);
-                    case 'hero': return <NewsList categoryFilter="Gương điển hình" />;
-                    case 'docs': return (<div className="bg-white p-6 rounded shadow"><h2 className="text-2xl font-bold text-gray-800 mb-6">Văn bản & Quy định</h2><div className="space-y-4"><div className="flex items-center justify-between p-3 bg-gray-50 rounded border hover:bg-gray-100"><div className="flex items-center gap-3"><FileText className="text-red-500" /><div><p className="font-bold text-gray-800">Kế hoạch ATGT Năm học 2024-2025</p><span className="text-xs text-gray-500">Văn bản nội bộ • 20/08/2024</span></div></div><button className="text-blue-600 text-sm font-bold">Tải về</button></div><div className="flex items-center justify-between p-3 bg-gray-50 rounded border hover:bg-gray-100"><div className="flex items-center gap-3"><FileText className="text-blue-500" /><div><p className="font-bold text-gray-800">Mẫu cam kết Phụ huynh - Nhà trường</p><span className="text-xs text-gray-500">Mẫu cam kết • 05/09/2024</span></div></div><button className="text-blue-600 text-sm font-bold">Tải về</button></div></div>{user && <AdminDashboard />}</div>);
-                    case 'map': return <InteractiveMap isAdmin={!!user} />;
-                    case 'login': return <Login onLoginSuccess={() => setCurrentPage('home')} />;
-                    case 'admin': return user ? <AdminDashboard /> : <Login onLoginSuccess={() => setCurrentPage('admin')} />;
+                    case 'home': return (
+                        <div className="space-y-12 animate-fade-in">
+                            <div className="bg-traffic-dark rounded-[2.5rem] p-8 md:p-12 text-white relative overflow-hidden shadow-2xl border-b-8 border-slate-900">
+                                <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle,_#ffffff_2px,_transparent_2px)] bg-[length:20px_20px]"></div>
+                                <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
+                                    <div className="flex-1 text-center md:text-left">
+                                        <div className="inline-flex items-center gap-2 bg-traffic-yellow text-slate-900 px-4 py-1 rounded-full font-black text-sm mb-4 transform -rotate-2"><Siren className="w-4 h-4"/> AN TOÀN LÀ BẠN</div>
+                                        <h2 className="font-display text-4xl md:text-6xl font-black mb-6 leading-tight">Cổng trường <br/><span className="text-traffic-green">An toàn</span> & <span className="text-brand-blue">Văn minh</span></h2>
+                                        <div className="flex flex-wrap gap-4 justify-center md:justify-start">
+                                            <button onClick={() => setCurrentPage('map')} className="bg-traffic-red text-white px-8 py-4 rounded-2xl font-black shadow-cartoon btn-cartoon flex items-center gap-2"><MapIcon className="w-6 h-6"/> XEM BẢN ĐỒ</button>
+                                            <button onClick={() => setCurrentPage('quiz')} className="bg-white text-traffic-dark px-8 py-4 rounded-2xl font-black shadow-cartoon btn-cartoon border-2 border-slate-200">THI ĐỐ VUI</button>
+                                        </div>
+                                    </div>
+                                    {/* --- HÌNH ẢNH HOẠT HÌNH --- */}
+                                    <div className="w-64 h-64 bg-white rounded-full flex items-center justify-center border-8 border-white/20 shadow-2xl animate-bounce-slow overflow-hidden relative">
+                                        {/* Bầu trời */}
+                                        <div className="absolute inset-0 bg-sky-200"></div>
+                                        
+                                        {/* Mây */}
+                                        <div className="absolute top-8 left-10 text-white opacity-80 animate-cloud-move"><svg width="40" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18,10a4,4,0,0,0-3.9,3.1A3,3,0,0,0,14,13a3,3,0,0,0,0,6h4a4,4,0,0,0,0-8Z"/></svg></div>
+                                        <div className="absolute top-12 right-12 text-white opacity-60 scale-75 animate-cloud-move" style={{animationDelay: '2s'}}><svg width="40" height="24" viewBox="0 0 24 24" fill="currentColor"><path d="M18,10a4,4,0,0,0-3.9,3.1A3,3,0,0,0,14,13a3,3,0,0,0,0,6h4a4,4,0,0,0,0-8Z"/></svg></div>
+
+                                        {/* Đường đi */}
+                                        <div className="absolute bottom-0 w-full h-1/3 bg-slate-700"></div>
+                                        {/* Vạch kẻ đường */}
+                                        <div className="absolute bottom-0 w-full h-1/3 flex justify-center gap-4 py-2 transform skew-x-12">
+                                            <div className="w-8 h-full bg-white opacity-90"></div>
+                                            <div className="w-8 h-full bg-white opacity-90"></div>
+                                            <div className="w-8 h-full bg-white opacity-90"></div>
+                                        </div>
+
+                                        {/* Đèn giao thông */}
+                                        <div className="absolute right-6 bottom-10 flex flex-col items-center">
+                                            <div className="w-6 h-14 bg-slate-800 rounded-lg p-1 flex flex-col justify-between border-2 border-slate-600 shadow-lg z-10">
+                                                <div className="w-4 h-4 rounded-full bg-red-500 animate-pulse"></div>
+                                                <div className="w-4 h-4 rounded-full bg-yellow-400 opacity-30"></div>
+                                                <div className="w-4 h-4 rounded-full bg-green-500 opacity-30"></div>
+                                            </div>
+                                            <div className="w-1 h-12 bg-slate-500"></div>
+                                        </div>
+
+                                        {/* Bé trai đi học */}
+                                        <div className="absolute bottom-4 left-10 z-20 transform -rotate-3 hover:scale-110 transition-transform cursor-pointer">
+                                            <div className="relative">
+                                                <div className="w-8 h-8 bg-orange-200 rounded-full border-2 border-white relative z-20">
+                                                    <div className="absolute top-2 left-2 w-1 h-1 bg-black rounded-full"></div>
+                                                    <div className="absolute top-2 right-2 w-1 h-1 bg-black rounded-full"></div>
+                                                    <div className="absolute bottom-2 left-2 w-4 h-1 bg-red-400 rounded-full"></div>
+                                                </div>
+                                                <div className="w-8 h-10 bg-blue-500 rounded-t-xl mt-[-4px] z-10 relative border-2 border-white"></div>
+                                                <div className="absolute top-8 -right-2 w-3 h-8 bg-yellow-400 rounded-lg transform rotate-12 z-0 border-2 border-white"></div> {/* Cặp sách */}
+                                            </div>
+                                        </div>
+
+                                        {/* Bé gái đội mũ bảo hiểm */}
+                                        <div className="absolute bottom-8 left-24 z-10 transform rotate-6 hover:scale-110 transition-transform cursor-pointer">
+                                             <div className="relative">
+                                                <div className="w-8 h-8 bg-orange-200 rounded-full border-2 border-white relative z-20">
+                                                    <div className="absolute -top-3 -left-1 w-10 h-6 bg-pink-400 rounded-t-full z-30 border border-pink-600"></div> {/* Mũ */}
+                                                     <div className="absolute top-3 left-2 w-1 h-1 bg-black rounded-full"></div>
+                                                    <div className="absolute top-3 right-2 w-1 h-1 bg-black rounded-full"></div>
+                                                    <div className="absolute bottom-2 left-2 w-4 h-1 bg-white rounded-full"></div>
+                                                </div>
+                                                <div className="w-10 h-10 bg-green-500 rounded-t-xl mt-[-4px] z-10 relative border-2 border-white flex items-center justify-center">
+                                                    <div className="text-[8px] font-black text-white opacity-80 mt-[-5px]">ATGT</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {/* --------------------------- */}
+                                </div>
+                            </div>
+                            <div className="zebra-divider" style={{height:'20px', backgroundImage: 'linear-gradient(90deg, #2C3E50 50%, transparent 50%)', backgroundSize: '60px 100%', opacity: 0.1, margin: '2rem 0'}}></div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div onClick={() => setCurrentPage('reporter')} className="bg-purple-100 p-8 rounded-[2rem] border-4 border-purple-200 cursor-pointer hover:bg-purple-200 transition-colors group">
+                                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-4 shadow-cartoon text-purple-600 group-hover:scale-110 transition-transform"><Camera className="w-8 h-8"/></div>
+                                    <h3 className="font-display text-2xl font-black text-purple-800 mb-2">Phóng viên Măng non</h3><p className="font-bold text-purple-600/70">Thấy đường hỏng, biển báo mờ? Chụp ảnh gửi ngay cho Biệt đội nhé!</p>
+                                </div>
+                                <div onClick={() => setCurrentPage('skills')} className="bg-traffic-light p-8 rounded-[2rem] border-4 border-slate-200 cursor-pointer hover:bg-white transition-colors group">
+                                    <div className="w-16 h-16 bg-traffic-yellow rounded-2xl flex items-center justify-center mb-4 shadow-cartoon text-slate-800 group-hover:scale-110 transition-transform"><GraduationCap className="w-8 h-8"/></div>
+                                    <h3 className="font-display text-2xl font-black text-slate-800 mb-2">Góc Kỹ Năng</h3><p className="font-bold text-slate-500">Học cách đi bộ, sang đường và đội mũ bảo hiểm đúng cách.</p>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                    case 'news': return <NewsFeed />;
+                    case 'skills': return <SkillsPage />; // Add Skills Page
+                    case 'reporter': return <LittleReporter />;
                     case 'quiz': return <TrafficQuiz />;
-                    case 'feedback': return <FeedbackForm />;
-                    default: return null;
+                    case 'admin': return user ? <AdminDashboard onLogout={() => signOut(auth)} /> : <Login />;
+                    case 'map': return <InteractiveMap isAdmin={!!user} />; // Re-enabled Map Component
+                    case 'login': return <Login />;
+                    default: return <div className="p-8 text-center font-bold text-slate-500">Nội dung đang được cập nhật...</div>;
                 }
             };
 
             return (
                 <ErrorBoundary>
-                    <div className="min-h-screen bg-slate-100 font-sans text-gray-800">
+                    <div className="min-h-screen pb-20">
                         <Header setCurrentPage={setCurrentPage} user={user} onLogout={() => signOut(auth)} />
-                        <main className="container mx-auto px-4 py-6">
-                            {user && currentPage !== 'login' && (<div className="mb-6 bg-yellow-100 p-3 rounded flex justify-between items-center border border-yellow-300"><span className="text-yellow-800 font-bold text-sm">Xin chào, Admin!</span><button onClick={() => setCurrentPage('admin')} className="text-xs bg-white px-3 py-1 rounded border border-yellow-500 text-yellow-700 font-bold hover:bg-yellow-50">Vào trang quản lý</button></div>)}
-                            {renderContent()}
-                        </main>
-                        <footer className="bg-blue-900 text-white py-8 mt-12"><div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8 text-sm"><div><h3 className="font-bold text-lg mb-4 uppercase">Trường TH Nam Hà</h3><p className="opacity-80 mb-2">Phường Thành Sen, Tỉnh Hà Tĩnh</p></div><div><h3 className="font-bold text-lg mb-4 uppercase">Liên kết</h3><ul className="space-y-2 opacity-80"><li><a href="#" className="hover:text-yellow-400">Ủy ban ATGT Quốc gia</a></li></ul></div><div><h3 className="font-bold text-lg mb-4 uppercase">Hỗ trợ khẩn cấp</h3><p className="mb-1">Công an Phường: <span className="font-bold text-yellow-400">0239.xxx.xxx</span></p></div></div><div className="text-center mt-8 pt-4 border-t border-blue-800 opacity-60 text-xs">© 2024 Trường Tiểu học Nam Hà.</div></footer>
+                        <main className="container mx-auto px-4 py-8">{renderContent()}</main>
+                        <footer className="bg-traffic-dark text-white mt-12 py-12 relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-full h-4 bg-white opacity-20 bg-[linear-gradient(90deg,_transparent_50%,_#fff_50%)] bg-[length:50px_100%]"></div>
+                            <div className="container mx-auto px-4 text-center">
+                                <h3 className="font-display text-2xl font-black mb-4">TRƯỜNG TIỂU HỌC NAM HÀ</h3>
+                                <p className="font-bold opacity-60">Vì nụ cười trẻ thơ - Hãy lái xe bằng cả trái tim</p>
+                                <div className="flex justify-center gap-4 mt-8">
+                                    <div className="w-3 h-3 rounded-full bg-traffic-red animate-bounce"></div>
+                                    <div className="w-3 h-3 rounded-full bg-traffic-yellow animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                                    <div className="w-3 h-3 rounded-full bg-traffic-green animate-bounce" style={{animationDelay: '0.4s'}}></div>
+                                </div>
+                            </div>
+                        </footer>
                     </div>
                 </ErrorBoundary>
             );
